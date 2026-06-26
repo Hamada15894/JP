@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+<meta name="theme-color" content="#0A2540" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>StorePin — سجل المتاجر الميداني</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230A2540'/%3E%3Cpath d='M50 22c-11 0-20 9-20 20 0 14 20 36 20 36s20-22 20-36c0-11-9-20-20-20z' fill='%2308B2A6'/%3E%3Ccircle cx='50' cy='42' r='8' fill='%23fff'/%3E%3C/svg%3E">
+
+<style>
+:root{
+  --ink:#0A2540; --ink-2:#16324F;
+  --brand:#08B2A6; --brand-deep:#066E66; --brand-soft:#E2F7F4;
+  --sun:#F5A524; --sun-soft:#FFF3DC;
+  --paper:#EFF3F6; --card:#FFFFFF; --line:#E0E7EE; --line-2:#EDF1F5;
+  --txt:#0F2438; --muted:#5C7187; --muted-2:#8AA0B4;
+  --ok:#12A06A; --ok-soft:#E4F6EE; --danger:#E5484D; --danger-soft:#FCE9E9;
+  --shadow:0 1px 2px rgba(10,37,64,.06), 0 6px 22px rgba(10,37,64,.07);
+  --shadow-lg:0 12px 40px rgba(10,37,64,.18);
+  --r:16px; --r-sm:11px; --r-lg:22px; --nav-h:64px;
+  --font:'Tajawal', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{font-family:var(--font); background:var(--paper); color:var(--txt); font-size:15.5px; line-height:1.5; -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit; font-size:16px;}
+a{color:var(--brand-deep);}
+.app{max-width:560px; margin:0 auto; min-height:100vh; min-height:100dvh; position:relative; background:var(--paper);}
+.topbar{position:sticky; top:0; z-index:40; background:linear-gradient(135deg,var(--ink) 0%,var(--ink-2) 55%,#0C3A48 100%); color:#fff; padding:calc(env(safe-area-inset-top,0) + 12px) 16px 12px; display:flex; align-items:center; gap:12px; box-shadow:0 4px 18px rgba(10,37,64,.22);}
+.brand{display:flex; align-items:center; gap:10px; font-weight:800;}
+.brand .logo{width:34px; height:34px; border-radius:10px; flex:0 0 auto; background:linear-gradient(150deg,var(--brand),var(--brand-deep)); display:grid; place-items:center; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);}
+.brand .logo svg{width:20px; height:20px;}
+.brand .name{font-size:18px; line-height:1;}
+.brand .sub{font-size:10.5px; opacity:.72; font-weight:500; margin-top:3px;}
+.topbar .spacer{flex:1;}
+.langbtn{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.18); padding:7px 12px; border-radius:999px; font-weight:700; font-size:13px; min-height:36px; display:flex; align-items:center; gap:6px;}
+.langbtn:active{transform:scale(.96);}
+.repchip{display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16); padding:6px 11px 6px 8px; border-radius:999px; font-size:12.5px; font-weight:700; max-width:130px; color:#fff;}
+.repchip .av{width:22px; height:22px; border-radius:50%; background:linear-gradient(150deg,var(--brand),var(--sun)); display:grid; place-items:center; font-size:11px; color:#06212c; flex:0 0 auto;}
+.repchip .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.page{display:none; padding:16px 14px calc(var(--nav-h) + env(safe-area-inset-bottom,0) + 18px);}
+.page.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden;}
+.card .hd{display:flex; align-items:center; gap:10px; padding:13px 15px; border-bottom:1px solid var(--line-2);}
+.card .hd .ic{width:30px; height:30px; border-radius:9px; background:var(--brand-soft); color:var(--brand-deep); display:grid; place-items:center; flex:0 0 auto;}
+.card .hd .ic svg{width:17px; height:17px;}
+.card .hd h3{margin:0; font-size:15px; font-weight:800; color:var(--ink);}
+.card .hd .step{margin-inline-start:auto; font-size:11px; font-weight:700; color:var(--muted-2); background:var(--line-2); padding:3px 9px; border-radius:999px;}
+.card .bd{padding:15px;}
+.field{margin-bottom:13px;}
+.field:last-child{margin-bottom:0;}
+.field > label{display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:6px;}
+.field > label .req{color:var(--danger); font-weight:800;}
+.field > label .auto-tag{margin-inline-start:auto; font-size:10px; font-weight:800; letter-spacing:.3px; color:var(--brand-deep); background:var(--brand-soft); padding:2px 7px; border-radius:999px; opacity:0; transform:scale(.9); transition:.2s;}
+.field.filled > label .auto-tag{opacity:1; transform:none;}
+.ctrl{width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:var(--r-sm); background:#fff; color:var(--txt); transition:border-color .15s, box-shadow .15s, background .2s; min-height:46px;}
+.ctrl::placeholder{color:var(--muted-2);}
+.ctrl:focus{outline:none; border-color:var(--brand); box-shadow:0 0 0 3.5px rgba(8,178,166,.14);}
+.field.filled .ctrl{background:var(--brand-soft); border-color:#9FE3DC;}
+.field.filled .ctrl:focus{background:#fff;}
+textarea.ctrl{min-height:64px; resize:vertical; line-height:1.45;}
+select.ctrl{appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%235C7187' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 12px center; padding-inline-start:13px; padding-inline-end:38px;}
+html[dir="ltr"] select.ctrl{background-position:right 12px center;}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:var(--r-sm); font-weight:800; padding:13px 16px; min-height:48px; font-size:15px; transition:transform .12s, box-shadow .2s, background .2s; width:100%;}
+.btn:active{transform:scale(.975);}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-deep)); color:#fff; box-shadow:0 6px 16px rgba(8,178,166,.30);}
+.btn-ink{background:var(--ink); color:#fff;}
+.btn-ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+.btn-soft{background:var(--brand-soft); color:var(--brand-deep);}
+.btn-danger{background:var(--danger-soft); color:var(--danger);}
+.btn svg{width:19px; height:19px;}
+.btn[disabled]{opacity:.55; pointer-events:none;}
+.btn-sm{padding:9px 13px; min-height:40px; font-size:13.5px; width:auto;}
+.loc-card .bd{padding:0;}
+.loc-hero{position:relative; padding:20px 16px; background:radial-gradient(120% 130% at 50% -10%,#0E3A48 0%,var(--ink) 60%); color:#fff; text-align:center;}
+.loc-hero .pin-wrap{position:relative; width:74px; height:74px; margin:2px auto 12px; display:grid; place-items:center;}
+.loc-hero .pulse{position:absolute; inset:0; border-radius:50%; background:var(--brand); opacity:0;}
+.loc-card.locating .pulse{animation:pulse 1.6s ease-out infinite;}
+.loc-card.located .pin-core{background:linear-gradient(150deg,var(--brand),var(--brand-deep));}
+@keyframes pulse{0%{transform:scale(.6); opacity:.55;} 100%{transform:scale(2.1); opacity:0;}}
+.loc-hero .pin-core{width:54px; height:54px; border-radius:50% 50% 50% 4px; transform:rotate(45deg); background:linear-gradient(150deg,#2C4A60,#1A3346); display:grid; place-items:center; box-shadow:0 8px 22px rgba(0,0,0,.35); transition:background .4s;}
+.loc-hero .pin-core .dot{width:18px; height:18px; border-radius:50%; background:#fff; transform:rotate(-45deg);}
+.loc-card.located .pin-core .dot{box-shadow:0 0 0 3px var(--sun);}
+.loc-hero h4{margin:0 0 3px; font-size:16px; font-weight:800;}
+.loc-hero p{margin:0; font-size:12.5px; opacity:.78; min-height:18px;}
+.coords{display:inline-flex; align-items:center; gap:9px; margin-top:12px; font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.3px; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16); padding:7px 12px; border-radius:999px; direction:ltr;}
+.coords.hide{display:none;}
+.coords .acc{color:var(--sun); font-weight:700;}
+.loc-actions{padding:14px 16px; display:flex; flex-direction:column; gap:9px;}
+#map{height:185px; width:100%; background:#dfe6ec; display:none;}
+#map.show{display:block;}
+.map-note{font-size:11px; color:var(--muted-2); text-align:center; padding:8px 14px 2px;}
+.auto-strip{display:flex; gap:8px; padding:0 14px 12px; flex-wrap:wrap;}
+.auto-strip.empty{display:none;}
+.snap{display:inline-flex; align-items:center; gap:6px; background:var(--sun-soft); color:#8A5A00; border:1px solid #F4D9A6; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:700; animation:snap .35s ease;}
+.snap svg{width:13px; height:13px;}
+@keyframes snap{from{opacity:0; transform:translateY(-4px) scale(.92);} to{opacity:1; transform:none;}}
+.photos{display:grid; grid-template-columns:repeat(3,1fr); gap:9px;}
+.ph{position:relative; aspect-ratio:1; border-radius:var(--r-sm); overflow:hidden; background:var(--line-2); border:1px solid var(--line);}
+.ph img{width:100%; height:100%; object-fit:cover; display:block;}
+.ph .rm{position:absolute; top:5px; inset-inline-end:5px; width:24px; height:24px; border-radius:50%; background:rgba(10,37,64,.78); color:#fff; border:none; display:grid; place-items:center; font-size:14px; line-height:1;}
+.ph-add{aspect-ratio:1; border:1.5px dashed #B7C6D4; border-radius:var(--r-sm); background:#F7FAFC; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:var(--brand-deep); font-weight:700; font-size:11.5px;}
+.ph-add svg{width:24px; height:24px; opacity:.85;}
+.ph-add:active{transform:scale(.97);}
+.savebar{position:fixed; left:0; right:0; bottom:var(--nav-h); z-index:35; max-width:560px; margin:0 auto; padding:10px 14px; background:linear-gradient(to top,var(--paper) 70%,rgba(239,243,246,0)); display:flex; gap:9px; pointer-events:none;}
+.savebar > *{pointer-events:auto;}
+.savebar .btn-primary{flex:1; box-shadow:var(--shadow-lg), 0 6px 16px rgba(8,178,166,.30);}
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:14px;}
+.stat{background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 8px; text-align:center; box-shadow:var(--shadow);}
+.stat .n{font-size:21px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1.1;}
+.stat .l{font-size:10.5px; color:var(--muted); font-weight:600; margin-top:2px;}
+.stat.tt .n{color:var(--brand-deep);} .stat.mt .n{color:#2563EB;} .stat.wh .n{color:var(--sun);}
+.toolbar{display:flex; gap:8px; margin-bottom:12px;}
+.search{flex:1; position:relative;}
+.search svg{position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%); width:17px; height:17px; color:var(--muted-2);}
+.search input{width:100%; padding:11px 12px; padding-inline-start:36px; border:1.5px solid var(--line); border-radius:var(--r-sm); background:#fff; min-height:44px;}
+.search input:focus{outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(8,178,166,.13);}
+.filterbtn{flex:0 0 auto; min-width:46px; padding:0 12px; border:1.5px solid var(--line); background:#fff; border-radius:var(--r-sm); display:grid; place-items:center; position:relative;}
+.filterbtn svg{width:18px; height:18px; color:var(--ink);}
+.filterbtn.on{background:var(--ink); border-color:var(--ink);}
+.filterbtn.on svg{color:#fff;}
+.filterbtn .badge{position:absolute; top:-5px; inset-inline-end:-5px; background:var(--sun); color:#3a2600; font-size:10px; font-weight:800; min-width:17px; height:17px; border-radius:999px; display:grid; place-items:center;}
+.filters{display:none; gap:8px; flex-wrap:wrap; margin-bottom:12px; padding:11px; background:#fff; border:1px solid var(--line); border-radius:var(--r-sm);}
+.filters.show{display:flex;}
+.fgroup{display:flex; flex-direction:column; gap:6px; flex:1; min-width:130px;}
+.fgroup .ttl{font-size:11px; font-weight:700; color:var(--muted);}
+.chips{display:flex; gap:6px; flex-wrap:wrap;}
+.chip{padding:6px 11px; border:1.5px solid var(--line); border-radius:999px; font-size:12px; font-weight:700; color:var(--muted); background:#fff;}
+.chip.active{background:var(--ink); border-color:var(--ink); color:#fff;}
+.store{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); margin-bottom:11px; overflow:hidden;}
+.store .top{display:flex; gap:12px; padding:13px 14px;}
+.store .thumb{width:62px; height:62px; border-radius:12px; flex:0 0 auto; background:var(--line-2); overflow:hidden; display:grid; place-items:center; position:relative;}
+.store .thumb img{width:100%; height:100%; object-fit:cover;}
+.store .thumb .noimg{color:var(--muted-2);}
+.store .thumb .cnt{position:absolute; bottom:3px; inset-inline-end:3px; background:rgba(10,37,64,.8); color:#fff; font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:6px;}
+.store .info{flex:1; min-width:0;}
+.store .info .nm{font-weight:800; color:var(--ink); font-size:15px; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.store .info .meta{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
+.store .info .meta .dot{width:3px; height:3px; border-radius:50%; background:var(--muted-2);}
+.tag{display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.2px;}
+.tag.MT{background:#E5EDFF; color:#2148B8;} .tag.TT{background:var(--brand-soft); color:var(--brand-deep);} .tag.WH{background:var(--sun-soft); color:#8A5A00;}
+.store .info .addr{font-size:11.5px; color:var(--muted-2); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.store .acts{display:flex; border-top:1px solid var(--line-2);}
+.store .acts button{flex:1; background:#fff; border:none; padding:11px; font-size:12.5px; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:6px;}
+.store .acts button svg{width:15px; height:15px;}
+.store .acts button:active{background:var(--line-2);}
+.store .acts button + button{border-inline-start:1px solid var(--line-2);}
+.store .acts .del{color:var(--danger);}
+.store .acts .map{color:var(--brand-deep);}
+.empty{text-align:center; padding:46px 24px; color:var(--muted);}
+.empty .ill{width:84px; height:84px; margin:0 auto 16px; border-radius:24px; background:var(--brand-soft); display:grid; place-items:center; color:var(--brand-deep);}
+.empty .ill svg{width:42px; height:42px;}
+.empty h4{margin:0 0 6px; color:var(--ink); font-size:17px;}
+.empty p{margin:0 0 18px; font-size:13.5px; line-height:1.6;}
+.set-row{display:flex; align-items:center; gap:12px; padding:14px 15px; border-bottom:1px solid var(--line-2);}
+.set-row:last-child{border-bottom:none;}
+.set-row .si{width:34px; height:34px; border-radius:10px; background:var(--line-2); color:var(--ink); display:grid; place-items:center; flex:0 0 auto;}
+.set-row .si svg{width:18px; height:18px;}
+.set-row .sc{flex:1; min-width:0;}
+.set-row .sc .t{font-weight:700; font-size:14px; color:var(--ink);}
+.set-row .sc .d{font-size:12px; color:var(--muted-2); margin-top:1px;}
+.nav{position:fixed; left:0; right:0; bottom:0; z-index:50; max-width:560px; margin:0 auto; height:calc(var(--nav-h) + env(safe-area-inset-bottom,0)); padding-bottom:env(safe-area-inset-bottom,0); background:rgba(255,255,255,.94); backdrop-filter:saturate(160%) blur(12px); border-top:1px solid var(--line); display:flex;}
+.nav button{flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--muted-2); font-size:11px; font-weight:700; position:relative;}
+.nav button svg{width:23px; height:23px; transition:transform .15s;}
+.nav button.active{color:var(--brand-deep);}
+.nav button.active svg{transform:translateY(-1px);}
+.nav button.active::before{content:''; position:absolute; top:0; width:30px; height:3px; border-radius:0 0 4px 4px; background:var(--brand);}
+.toast-wrap{position:fixed; left:0; right:0; bottom:calc(var(--nav-h) + 16px); z-index:80; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; padding:0 16px;}
+.toast{background:var(--ink); color:#fff; padding:12px 18px; border-radius:999px; font-size:13.5px; font-weight:700; box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:9px; max-width:100%; animation:toastIn .3s ease;}
+.toast.ok{background:#0E5C42;} .toast.err{background:#B23036;}
+.toast svg{width:17px; height:17px; flex:0 0 auto;}
+@keyframes toastIn{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+.overlay{position:fixed; inset:0; z-index:90; background:rgba(8,22,36,.5); backdrop-filter:blur(2px); display:none; align-items:flex-end; justify-content:center;}
+.overlay.show{display:flex; animation:fade .2s;}
+.sheet{background:#fff; width:100%; max-width:560px; border-radius:22px 22px 0 0; padding:8px 18px calc(20px + env(safe-area-inset-bottom,0)); animation:up .28s cubic-bezier(.2,.8,.25,1);}
+@keyframes up{from{transform:translateY(100%);} to{transform:none;}}
+.sheet .grab{width:42px; height:5px; border-radius:999px; background:var(--line); margin:8px auto 14px;}
+.sheet h3{margin:0 0 4px; font-size:17px; color:var(--ink); text-align:center;}
+.sheet p{margin:0 0 18px; font-size:13.5px; color:var(--muted); text-align:center; line-height:1.55;}
+.sheet .row{display:flex; gap:10px;}
+.sheet .row .btn{flex:1;}
+.hide{display:none !important;}
+/* toggle switch */
+.toggle{position:relative; width:50px; height:29px; flex:0 0 auto; display:inline-block;}
+.toggle input{opacity:0; width:0; height:0;}
+.toggle .tr{position:absolute; inset:0; background:#CBD6E0; border-radius:999px; transition:.2s; cursor:pointer;}
+.toggle .tr::before{content:''; position:absolute; height:23px; width:23px; inset-inline-start:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked + .tr{background:var(--brand);}
+html[dir="rtl"] .toggle input:checked + .tr::before{transform:translateX(-21px);}
+html[dir="ltr"] .toggle input:checked + .tr::before{transform:translateX(21px);}
+/* edit toggle in card header */
+.edit-toggle{margin-inline-start:auto; display:inline-flex; align-items:center; gap:5px; background:var(--line-2); color:var(--ink); border:none; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:700;}
+.edit-toggle svg{width:13px; height:13px;}
+.edit-toggle.on{background:var(--ink); color:#fff;}
+.edit-toggle:active{transform:scale(.95);}
+/* address empty + summary */
+.addr-empty{display:flex; align-items:center; gap:9px; padding:14px; border:1.5px dashed #C4D2DE; border-radius:var(--r-sm); color:var(--muted); font-size:13px; font-weight:600; background:#F7FAFC;}
+.addr-empty svg{width:20px; height:20px; color:var(--muted-2); flex:0 0 auto;}
+.addr-summary{border:1px solid #BBE6E0; border-radius:var(--r-sm); background:linear-gradient(180deg,#F1FBFA,#FFFFFF); overflow:hidden; animation:snap .35s ease;}
+.sum-row{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid #E3F2EF;}
+.sum-row .sl{font-size:12px; font-weight:700; color:var(--muted); min-width:96px;}
+.sum-row .sv{font-size:14.5px; font-weight:800; color:var(--ink); flex:1;}
+.sum-row .sv.muted{color:var(--muted-2); font-weight:600;}
+.addr-detail-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:none; border:none; font-size:12.5px; font-weight:700; color:var(--brand-deep);}
+.addr-detail-toggle svg{width:16px; height:16px; transition:transform .2s;}
+.addr-detail-toggle.open svg{transform:rotate(180deg);}
+.addr-detail{padding:0 14px 13px; font-size:12.5px; color:var(--muted); line-height:1.55;}
+.addr-edit{animation:fade .2s ease;}
+.notes-field{margin-top:13px; padding-top:13px; border-top:1px dashed var(--line);}
+.notes-field textarea{min-height:54px;}
+/* duplicate location warning */
+.dup-warn{margin:0 14px 12px; border-radius:var(--r-sm); background:linear-gradient(180deg,#FFF7E8,#FFFBF3); border:1.5px solid #F3D49A; padding:12px 13px; animation:snap .35s ease;}
+.dup-warn .dw-top{display:flex; gap:9px; align-items:flex-start;}
+.dup-warn .dw-ic{width:30px; height:30px; border-radius:9px; background:#FBE3B3; color:#8A5A00; display:grid; place-items:center; flex:0 0 auto;}
+.dup-warn .dw-ic svg{width:17px; height:17px;}
+.dup-warn .dw-tx{flex:1; min-width:0;}
+.dup-warn .dw-tx .h{font-size:13px; font-weight:800; color:#7A4E00;}
+.dup-warn .dw-tx .b{font-size:12.5px; color:#8A5A00; margin-top:2px; line-height:1.5;}
+.dup-warn .dw-tx .b b{color:#5C3A00;}
+.dup-warn .dw-acts{display:flex; gap:8px; margin-top:11px;}
+.dup-warn .dw-acts button{flex:1; padding:9px; border-radius:9px; font-size:12.5px; font-weight:800; border:none;}
+.dup-warn .dw-open{background:var(--ink); color:#fff;}
+.dup-warn .dw-keep{background:#fff; color:#8A5A00; border:1.5px solid #F0CD8C;}
+/* export card */
+.export-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden;}
+.exp-opt{display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid var(--line-2);}
+.exp-opt .eo-text{flex:1; min-width:0;}
+.exp-opt .eo-text .t{font-weight:700; font-size:13.5px; color:var(--ink);}
+.exp-opt .eo-text .d{font-size:11.5px; color:var(--muted-2); margin-top:1px;}
+.export-card .btn{border-radius:0; margin:0;}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+@media (max-width:360px){ .stats{grid-template-columns:repeat(2,1fr);} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#fff" fill-opacity=".95"/><circle cx="12" cy="9" r="2.6" fill="#066E66"/></svg></span>
+      <div><div class="name">StorePin</div><div class="sub" data-i18n="tagline">سجل المتاجر الميداني</div></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="repchip hide" id="repChip" onclick="go('settings')"><span class="av" id="repAv">?</span><span class="nm" id="repName">—</span></button>
+    <button class="langbtn" id="langBtn" onclick="toggleLang()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
+      <span id="langLbl">EN</span>
+    </button>
+  </header>
+
+  <!-- PAGE: ADD -->
+  <main class="page active" id="page-add">
+    <div class="card"><div class="bd" style="padding:13px 15px;">
+      <div class="field" style="margin:0;">
+        <label data-i18n="lbl_rep"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg> اسم المندوب</label>
+        <input class="ctrl" id="repInput" data-i18n-ph="ph_rep" placeholder="اكتب اسمك (يُحفظ تلقائيًا)" autocomplete="name" />
+      </div>
+    </div></div>
+
+    <div class="card loc-card" id="locCard">
+      <div class="hd">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
+        <h3 data-i18n="loc_title">موقع المتجر</h3><span class="step">1</span>
+      </div>
+      <div class="bd">
+        <div class="loc-hero">
+          <div class="pin-wrap"><div class="pulse"></div><div class="pin-core"><div class="dot"></div></div></div>
+          <h4 id="locTitle" data-i18n="loc_h">حدّد موقعك الآن</h4>
+          <p id="locSub" data-i18n="loc_p">قف أمام المتجر واضغط الزر لالتقاط الإحداثيات</p>
+          <div class="coords hide" id="coordsBox"><span id="coordsTxt">—</span><span class="acc" id="accTxt"></span></div>
+        </div>
+        <div class="auto-strip empty" id="autoStrip"></div>
+        <div class="dup-warn hide" id="dupWarn"></div>
+        <div class="map-note hide" id="mapNote" data-i18n="map_note">اسحب الدبوس لضبط الموقع بدقة</div>
+        <div id="map"></div>
+        <div class="loc-actions">
+          <button class="btn btn-primary" id="locBtn" onclick="getLocation()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+            <span data-i18n="btn_locate">تحديد الموقع</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M3 9h18"/></svg></span>
+        <h3 data-i18n="det_title">بيانات المتجر</h3><span class="step">2</span>
+      </div>
+      <div class="bd">
+        <div class="field"><label data-i18n="lbl_customer">اسم المتجر / العميل <span class="req">*</span></label>
+          <input class="ctrl" id="fCustomer" data-i18n-ph="ph_customer" placeholder="مثال: بقالة الأمانة" /></div>
+        <div class="field"><label data-i18n="lbl_channel">قناة التوزيع</label>
+          <select class="ctrl" id="fChannel">
+            <option value="" data-i18n="opt_choose">— اختر —</option>
+            <option value="MT">MT — Modern Trade</option>
+            <option value="TT">TT — Traditional Trade</option>
+            <option value="WH">WH — Wholesale</option>
+          </select></div>
+        <div class="row2">
+          <div class="field"><label data-i18n="lbl_contact">اسم المسؤول</label>
+            <input class="ctrl" id="fContact" data-i18n-ph="ph_contact" placeholder="اسم صاحب المحل" autocomplete="off" /></div>
+          <div class="field"><label data-i18n="lbl_phone">رقم الجوال</label>
+            <input class="ctrl" id="fPhone" type="tel" inputmode="tel" data-i18n-ph="ph_phone" placeholder="05xxxxxxxx" autocomplete="off" dir="ltr" style="text-align:start;" /></div>
+        </div>
+        <div class="field" style="margin-bottom:0;"><label data-i18n="lbl_sales">متوسط المشتريات الأسبوعية (ريال)</label>
+          <input class="ctrl" id="fSales" type="number" inputmode="decimal" min="0" data-i18n-ph="ph_sales" placeholder="مثال: 1500" dir="ltr" style="text-align:start;" /></div>
+      </div>
+    </div>
+
+    <div class="card" id="addrCard">
+      <div class="hd">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+        <h3 data-i18n="addr_title">المنطقة والعنوان</h3>
+        <button class="edit-toggle hide" id="editToggle" onclick="toggleAddrEdit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg><span data-i18n="btn_edit">تعديل</span></button>
+      </div>
+      <div class="bd">
+        <!-- empty state -->
+        <div class="addr-empty" id="addrEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          <span data-i18n="addr_empty">اضغط «تحديد الموقع» وسيُملأ العنوان تلقائيًا</span>
+        </div>
+        <!-- auto-filled read-only summary -->
+        <div class="addr-summary hide" id="addrSummary">
+          <div class="sum-row"><span class="sl" data-i18n="lbl_region">المنطقة</span><span class="sv" id="sumRegion">—</span></div>
+          <div class="sum-row"><span class="sl" data-i18n="lbl_city">المدينة</span><span class="sv" id="sumCity">—</span></div>
+          <div class="sum-row"><span class="sl" data-i18n="lbl_hood">الحي / الحارة</span><span class="sv" id="sumHood">—</span></div>
+          <button class="addr-detail-toggle" id="addrDetailToggle" onclick="toggleAddrDetail()">
+            <span data-i18n="addr_detail">العنوان التفصيلي</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="addr-detail hide" id="addrDetail"><span id="sumAddr">—</span></div>
+        </div>
+        <!-- editable fields (hidden until edit) -->
+        <div class="addr-edit hide" id="addrEdit">
+          <div class="row2">
+            <div class="field" id="wrapRegion"><label data-i18n="lbl_region">المنطقة</label>
+              <select class="ctrl" id="fRegion">
+                <option value="" data-i18n="opt_choose">— اختر —</option>
+                <option value="E">الشرقية — East</option>
+                <option value="W">الغربية — West</option>
+                <option value="C">الوسطى — Center</option>
+                <option value="N">الشمالية — North</option>
+                <option value="S">الجنوبية — South</option>
+              </select></div>
+            <div class="field" id="wrapCity"><label data-i18n="lbl_city">المدينة</label>
+              <input class="ctrl" id="fCity" list="cityList" data-i18n-ph="ph_city" placeholder="المدينة" autocomplete="off" />
+              <datalist id="cityList"></datalist></div>
+          </div>
+          <div class="field" id="wrapHood"><label data-i18n="lbl_hood">الحي / الحارة</label>
+            <input class="ctrl" id="fHood" data-i18n-ph="ph_hood" placeholder="يُملأ من الموقع" autocomplete="off" /></div>
+          <div class="field" id="wrapAddr" style="margin-bottom:0;"><label data-i18n="lbl_addr">العنوان التفصيلي</label>
+            <textarea class="ctrl" id="fAddr" data-i18n-ph="ph_addr" placeholder="العنوان التفصيلي"></textarea></div>
+        </div>
+        <!-- notes (always editable) -->
+        <div class="field notes-field" style="margin-bottom:0;">
+          <label data-i18n="lbl_notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H8l-4 4V4z"/></svg> ملاحظات</label>
+          <textarea class="ctrl" id="fNotes" data-i18n-ph="ph_notes" placeholder="أي ملاحظة عن المتجر أو العميل (اختياري)"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L18 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/><circle cx="12" cy="12.5" r="3.2"/></svg></span>
+        <h3 data-i18n="ph_title">صور المتجر</h3><span class="step">3</span>
+      </div>
+      <div class="bd">
+        <div class="photos" id="photoGrid"></div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" class="hide" />
+      </div>
+    </div>
+    <div style="height:8px;"></div>
+  </main>
+
+  <div class="savebar" id="saveBar">
+    <button class="btn btn-ghost btn-sm" id="clearBtn" onclick="clearForm(true)" style="flex:0 0 auto; width:auto; padding:13px 16px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+    </button>
+    <button class="btn btn-primary" id="saveBtn" onclick="saveStore()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg>
+      <span id="saveLbl" data-i18n="btn_save">حفظ المتجر</span>
+    </button>
+  </div>
+
+  <!-- PAGE: STORES -->
+  <main class="page" id="page-stores">
+    <div class="stats">
+      <div class="stat"><div class="n" id="stTotal">0</div><div class="l" data-i18n="st_total">الإجمالي</div></div>
+      <div class="stat mt"><div class="n" id="stMT">0</div><div class="l">MT</div></div>
+      <div class="stat tt"><div class="n" id="stTT">0</div><div class="l">TT</div></div>
+      <div class="stat wh"><div class="n" id="stWH">0</div><div class="l">WH</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="searchInput" data-i18n-ph="ph_search" placeholder="بحث بالاسم أو المدينة أو الحي…" oninput="renderStores()" />
+      </div>
+      <button class="filterbtn" id="filterToggle" onclick="toggleFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+        <span class="badge hide" id="filterBadge">0</span>
+      </button>
+    </div>
+    <div class="filters" id="filters">
+      <div class="fgroup"><span class="ttl" data-i18n="f_region">المنطقة</span><div class="chips" id="filterRegions"></div></div>
+      <div class="fgroup"><span class="ttl" data-i18n="f_channel">القناة</span><div class="chips" id="filterChannels"></div></div>
+    </div>
+    <div class="export-card">
+      <div class="exp-opt">
+        <div class="eo-text">
+          <div class="t" data-i18n="opt_datetime">إظهار التاريخ والوقت في الملف</div>
+          <div class="d" data-i18n="opt_datetime_d">عمود تاريخ التسجيل لكل متجر</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="incDate" checked onchange="saveExpPref()"><span class="tr"></span></label>
+      </div>
+      <button class="btn btn-ink" id="exportBtn" onclick="exportExcel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2v6h6M14 2l6 6M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8M9 13l2.5 3L9 19M15 13l-2.5 3L15 19"/></svg>
+        <span data-i18n="btn_export">تصدير Excel (مع الصور)</span>
+      </button>
+    </div>
+    <div id="storeList"></div>
+  </main>
+
+  <!-- PAGE: SETTINGS -->
+  <main class="page" id="page-settings">
+    <div class="card">
+      <div class="hd"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span><h3 data-i18n="set_rep">المندوب</h3></div>
+      <div class="bd"><div class="field" style="margin:0;"><label data-i18n="lbl_rep">اسم المندوب</label>
+        <input class="ctrl" id="repInput2" data-i18n-ph="ph_rep" placeholder="اكتب اسمك" /></div></div>
+    </div>
+    <div class="card">
+      <div class="set-row">
+        <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg></span>
+        <div class="sc"><div class="t" data-i18n="set_lang">اللغة</div><div class="d" id="langDesc">العربية</div></div>
+        <button class="btn btn-soft btn-sm" onclick="toggleLang()" id="langDescBtn">English</button>
+      </div>
+      <div class="set-row">
+        <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span>
+        <div class="sc"><div class="t" data-i18n="set_backup">نسخة احتياطية (JSON)</div><div class="d" data-i18n="set_backup_d">احفظ كل بياناتك في ملف</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()" data-i18n="btn_backup">حفظ</button>
+      </div>
+      <div class="set-row">
+        <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-4a2 2 0 012-2h14a2 2 0 012 2v4M17 14l-5-5-5 5M12 9v12"/></svg></span>
+        <div class="sc"><div class="t" data-i18n="set_restore">استعادة نسخة</div><div class="d" data-i18n="set_restore_d">استورد ملف JSON محفوظ</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restoreInput').click()" data-i18n="btn_restore">استعادة</button>
+        <input type="file" id="restoreInput" accept="application/json,.json" class="hide" />
+      </div>
+    </div>
+    <div class="card">
+      <div class="set-row">
+        <span class="si" style="background:var(--danger-soft); color:var(--danger);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span>
+        <div class="sc"><div class="t" data-i18n="set_clear">حذف كل البيانات</div><div class="d" data-i18n="set_clear_d">لا يمكن التراجع</div></div>
+        <button class="btn btn-danger btn-sm" onclick="confirmClearAll()" data-i18n="btn_clear">حذف</button>
+      </div>
+    </div>
+    <div class="card"><div class="bd" style="text-align:center; color:var(--muted-2); font-size:12px; line-height:1.7;">
+      <div style="font-weight:800; color:var(--ink); font-size:13px;">StorePin</div>
+      <div data-i18n="about">تطبيق ميداني لتسجيل المتاجر — يعمل بدون خادم، بياناتك محفوظة على جهازك.</div>
+    </div></div>
+  </main>
+
+  <nav class="nav">
+    <button id="nav-add" class="active" onclick="go('add')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      <span data-i18n="nav_add">تسجيل</span>
+    </button>
+    <button id="nav-stores" onclick="go('stores')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M3 9h18M9 13h6"/></svg>
+      <span data-i18n="nav_stores">المتاجر</span>
+    </button>
+    <button id="nav-settings" onclick="go('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7.7 1.6 1.6 0 01-3.2 0 1.6 1.6 0 00-2.7-.7l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-.7-2.7 1.6 1.6 0 010-3.2 1.6 1.6 0 00.7-2.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 002.7-.7 1.6 1.6 0 013.2 0 1.6 1.6 0 002.7.7l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00.7 2.7z"/></svg>
+      <span data-i18n="nav_settings">الإعدادات</span>
+    </button>
+  </nav>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="sheet">
+      <div class="grab"></div>
+      <h3 id="mTitle">—</h3>
+      <p id="mBody">—</p>
+      <div class="row">
+        <button class="btn btn-ghost" id="mCancel" onclick="closeModal()" data-i18n="btn_cancel">إلغاء</button>
+        <button class="btn btn-danger" id="mConfirm" data-i18n="btn_confirm">تأكيد</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+
+<script>
+/* ===== 1. Reference data ===== */
+const REGIONS={E:{ar:'الشرقية',en:'East'},W:{ar:'الغربية',en:'West'},C:{ar:'الوسطى',en:'Center'},N:{ar:'الشمالية',en:'North'},S:{ar:'الجنوبية',en:'South'}};
+const CITIES=[
+  {en:'Dammam',ar:'الدمام',r:'E',lat:26.4344,lng:50.1033},
+  {en:'Khobar',ar:'الخبر',r:'E',lat:26.2794,lng:50.2083},
+  {en:'Dhahran',ar:'الظهران',r:'E',lat:26.2667,lng:50.1500},
+  {en:'Qatif',ar:'القطيف',r:'E',lat:26.5650,lng:50.0089},
+  {en:'Jubail',ar:'الجبيل',r:'E',lat:27.0046,lng:49.6608},
+  {en:'Hofuf',ar:'الهفوف',r:'E',lat:25.3833,lng:49.5869},
+  {en:'Al Hassa',ar:'الأحساء',r:'E',lat:25.4290,lng:49.6220},
+  {en:'Abqaiq',ar:'بقيق',r:'E',lat:25.9344,lng:49.6680},
+  {en:'Al Khafji',ar:'الخفجي',r:'E',lat:28.4392,lng:48.4910},
+  {en:'Ras Tanura',ar:'رأس تنورة',r:'E',lat:26.6940,lng:50.0460},
+  {en:'Jeddah',ar:'جدة',r:'W',lat:21.4858,lng:39.1925},
+  {en:'Makkah',ar:'مكة المكرمة',r:'W',lat:21.3891,lng:39.8579},
+  {en:'Medina',ar:'المدينة المنورة',r:'W',lat:24.5247,lng:39.5692},
+  {en:'Taif',ar:'الطائف',r:'W',lat:21.2854,lng:40.4244},
+  {en:'Yanbu',ar:'ينبع',r:'W',lat:24.0894,lng:38.0618},
+  {en:'Rabigh',ar:'رابغ',r:'W',lat:22.7986,lng:39.0349},
+  {en:'Tabuk',ar:'تبوك',r:'W',lat:28.3838,lng:36.5550},
+  {en:'Al Baha',ar:'الباحة',r:'W',lat:20.0129,lng:41.4677},
+  {en:'Riyadh',ar:'الرياض',r:'C',lat:24.7136,lng:46.6753},
+  {en:'Al Kharj',ar:'الخرج',r:'C',lat:24.1554,lng:47.3346},
+  {en:'Buraidah',ar:'بريدة',r:'N',lat:26.3260,lng:43.9750},
+  {en:'Onaiza',ar:'عنيزة',r:'N',lat:26.0843,lng:43.9936},
+  {en:'Al Rass',ar:'الرس',r:'N',lat:25.8693,lng:43.4979},
+  {en:'Al Mithnab',ar:'المذنب',r:'N',lat:25.8667,lng:44.2167},
+  {en:'Al Bukayriyah',ar:'البكيرية',r:'N',lat:26.1390,lng:43.6550},
+  {en:'Al Badayea',ar:'البدائع',r:'N',lat:26.0167,lng:43.7667},
+  {en:'Ar Rawdah',ar:'الرويضة',r:'N',lat:25.9667,lng:43.9667},
+  {en:'Hail',ar:'حائل',r:'N',lat:27.5236,lng:41.6957},
+  {en:'Sakaka',ar:'سكاكا',r:'N',lat:29.9697,lng:40.2064},
+  {en:'Arar',ar:'عرعر',r:'N',lat:30.9753,lng:41.0381},
+  {en:'Turaif',ar:'طريف',r:'N',lat:31.6725,lng:38.6531},
+  {en:'Qurayyat',ar:'القريات',r:'N',lat:31.3320,lng:37.3421},
+  {en:'Hafar Al Batin',ar:'حفر الباطن',r:'N',lat:28.4337,lng:45.9601},
+  {en:'Al Majmaah',ar:'المجمعة',r:'N',lat:25.9039,lng:45.3450},
+  {en:'Az Zulfi',ar:'الزلفي',r:'N',lat:26.2983,lng:44.8147},
+  {en:'Shaqra',ar:'شقراء',r:'N',lat:25.2400,lng:45.2500},
+  {en:'Duwadmi',ar:'الدوادمي',r:'N',lat:24.5085,lng:44.3927},
+  {en:'Sajir',ar:'ساجر',r:'N',lat:25.1714,lng:44.5897},
+  {en:'Khamis Mushait',ar:'خميس مشيط',r:'S',lat:18.3060,lng:42.7290},
+  {en:'Abha',ar:'أبها',r:'S',lat:18.2169,lng:42.5053},
+  {en:'Najran',ar:'نجران',r:'S',lat:17.4933,lng:44.1277},
+  {en:'Jizan',ar:'جازان',r:'S',lat:16.8892,lng:42.5611},
+  {en:'Bisha',ar:'بيشة',r:'S',lat:19.9979,lng:42.6090},
+  {en:'Sharurah',ar:'شرورة',r:'S',lat:17.4845,lng:47.1167},
+  {en:'Wadi Ad-Dawasir',ar:'وادي الدواسر',r:'S',lat:20.4490,lng:44.8050},
+  {en:'As Sulayyil',ar:'السليل',r:'S',lat:20.4607,lng:45.5775},
+  {en:'Al Majaridah',ar:'المجاردة',r:'S',lat:19.1200,lng:41.9100},
+  {en:'Muhayil',ar:'محايل عسير',r:'S',lat:18.5500,lng:42.0500},
+  {en:'Zahran Al Janub',ar:'ظهران الجنوب',r:'S',lat:17.6600,lng:43.4900},
+  {en:'Abu Arish',ar:'أبو عريش',r:'S',lat:16.9690,lng:42.8320},
+  {en:'Ad Darb',ar:'الدرب',r:'S',lat:17.7200,lng:42.2500},
+  {en:'An Namas',ar:'النماص',r:'S',lat:19.1300,lng:42.1200},
+  {en:'Sirat Abidah',ar:'سراة عبيدة',r:'S',lat:18.2050,lng:42.8170},
+  {en:'Raina',ar:'رينة',r:'S',nogeo:true}
+];
+const CHANNELS={MT:{ar:'مودرن تريد',en:'Modern Trade'},TT:{ar:'بقالة / تقليدي',en:'Traditional'},WH:{ar:'جملة',en:'Wholesale'}};
+
+/* ===== 2. i18n ===== */
+const I18N={
+  ar:{tagline:'سجل المتاجر الميداني',nav_add:'تسجيل',nav_stores:'المتاجر',nav_settings:'الإعدادات',
+    lbl_rep:'اسم المندوب',ph_rep:'اكتب اسمك (يُحفظ تلقائيًا)',loc_title:'موقع المتجر',loc_h:'حدّد موقعك الآن',
+    loc_p:'قف أمام المتجر واضغط الزر لالتقاط الإحداثيات',btn_locate:'تحديد الموقع',map_note:'اسحب الدبوس لضبط الموقع بدقة',
+    det_title:'بيانات المتجر',lbl_customer:'اسم المتجر / العميل',ph_customer:'مثال: بقالة الأمانة',lbl_channel:'قناة التوزيع',opt_choose:'— اختر —',
+    lbl_contact:'اسم المسؤول',ph_contact:'اسم صاحب المحل',lbl_phone:'رقم الجوال',ph_phone:'05xxxxxxxx',
+    lbl_sales:'متوسط المشتريات الأسبوعية (ريال)',ph_sales:'مثال: 1500',addr_title:'المنطقة والعنوان',auto:'تلقائي',
+    lbl_region:'المنطقة',lbl_city:'المدينة',ph_city:'المدينة',lbl_hood:'الحي / الحارة',ph_hood:'يُملأ من الموقع — قابل للتعديل',
+    lbl_addr:'العنوان / الموقع',ph_addr:'العنوان التفصيلي — يُملأ من الموقع',ph_title:'صور المتجر',ph_add:'إضافة صورة',
+    btn_save:'حفظ المتجر',btn_update:'تحديث المتجر',st_total:'الإجمالي',ph_search:'بحث بالاسم أو المدينة أو الحي…',
+    f_region:'المنطقة',f_channel:'القناة',btn_export:'تصدير Excel (مع الصور)',
+    empty_h:'لا توجد متاجر بعد',empty_p:'ابدأ بتسجيل أول متجر من تبويب «تسجيل».',empty_btn:'تسجيل متجر',
+    empty_search_h:'لا نتائج',empty_search_p:'جرّب كلمة بحث أو فلتر مختلف.',
+    set_rep:'المندوب',set_lang:'اللغة',set_backup:'نسخة احتياطية (JSON)',set_backup_d:'احفظ كل بياناتك في ملف',btn_backup:'حفظ',
+    set_restore:'استعادة نسخة',set_restore_d:'استورد ملف JSON محفوظ',btn_restore:'استعادة',
+    set_clear:'حذف كل البيانات',set_clear_d:'لا يمكن التراجع',btn_clear:'حذف',
+    about:'تطبيق ميداني لتسجيل المتاجر — يعمل بدون خادم، بياناتك محفوظة على جهازك.',
+    btn_cancel:'إلغاء',btn_confirm:'تأكيد',btn_delete:'حذف',act_edit:'تعديل',act_map:'الخريطة',act_del:'حذف',
+    t_saved:'تم حفظ المتجر',t_updated:'تم تحديث المتجر',t_deleted:'تم الحذف',t_need_name:'اكتب اسم المتجر أولًا',t_need_rep:'اكتب اسم المندوب أولًا',
+    t_locating:'جارٍ تحديد الموقع…',t_located:'تم تحديد الموقع',t_loc_denied:'تم رفض إذن الموقع — فعّله من إعدادات المتصفح',
+    t_loc_unavail:'تعذّر تحديد الموقع',t_loc_timeout:'انتهت مهلة تحديد الموقع — حاول مجددًا',t_no_geo:'جهازك لا يدعم تحديد الموقع',t_addr_loading:'جارٍ جلب العنوان…',
+    t_max_photos:'الحد الأقصى 3 صور',t_no_stores:'لا توجد متاجر للتصدير',t_exporting:'جارٍ إنشاء ملف Excel…',t_exported:'تم تصدير الملف',t_export_err:'تعذّر التصدير — تحقق من الاتصال',
+    t_backup_done:'تم حفظ النسخة',t_restore_done:'تمت الاستعادة',t_restore_err:'ملف غير صالح',t_cleared:'تم حذف كل البيانات',
+    t_no_persist:'تنبيه: التخزين الدائم غير متاح هنا — انشر التطبيق على الهاتف لحفظ البيانات',
+    m_del_title:'حذف هذا المتجر؟',m_del_body:'سيتم حذف بيانات وصور هذا المتجر نهائيًا.',
+    m_clear_title:'حذف كل البيانات؟',m_clear_body:'سيتم حذف جميع المتاجر وصورها نهائيًا. ننصح بأخذ نسخة احتياطية أولًا.',
+    loc_done:'تم — اضبط الدبوس إن لزم',km:'كم',
+    btn_edit:'تعديل',btn_done:'تم',addr_empty:'اضغط «تحديد الموقع» وسيُملأ العنوان تلقائيًا',addr_detail:'العنوان التفصيلي',
+    lbl_notes:'ملاحظات',ph_notes:'أي ملاحظة عن المتجر أو العميل (اختياري)',
+    opt_datetime:'إظهار التاريخ والوقت في الملف',opt_datetime_d:'عمود تاريخ التسجيل لكل متجر',
+    loc_iframe:'تحديد الموقع لا يعمل داخل المعاينة — افتح الرابط المنشور على جوالك',
+    dup_h:'⚠️ موقع قريب مسجّل سابقًا',dup_body:'سجّلت «{name}» على بُعد {d} متر من هنا. هل هو نفس المتجر؟',dup_open:'فتح المتجر الموجود',dup_keep:'متابعة كمتجر جديد',m:'م'},
+  en:{tagline:'Field Store Registry',nav_add:'Add',nav_stores:'Stores',nav_settings:'Settings',
+    lbl_rep:'Salesman name',ph_rep:'Your name (saved automatically)',loc_title:'Store location',loc_h:'Pin your location',
+    loc_p:'Stand in front of the store and tap to capture coordinates',btn_locate:'Get location',map_note:'Drag the pin to fine-tune the spot',
+    det_title:'Store details',lbl_customer:'Store / customer name',ph_customer:'e.g. Al Amana Grocery',lbl_channel:'Distribution channel',opt_choose:'— Choose —',
+    lbl_contact:'Contact name',ph_contact:'Owner name',lbl_phone:'Mobile number',ph_phone:'05xxxxxxxx',
+    lbl_sales:'Average weekly sales (SAR)',ph_sales:'e.g. 1500',addr_title:'Region & address',auto:'AUTO',
+    lbl_region:'Region',lbl_city:'City',ph_city:'City',lbl_hood:'Neighborhood',ph_hood:'Filled from location — editable',
+    lbl_addr:'Address / location',ph_addr:'Detailed address — filled from location',ph_title:'Store photos',ph_add:'Add photo',
+    btn_save:'Save store',btn_update:'Update store',st_total:'Total',ph_search:'Search name, city or neighborhood…',
+    f_region:'Region',f_channel:'Channel',btn_export:'Export Excel (with photos)',
+    empty_h:'No stores yet',empty_p:'Register your first store from the “Add” tab.',empty_btn:'Add a store',
+    empty_search_h:'No results',empty_search_p:'Try a different search or filter.',
+    set_rep:'Salesman',set_lang:'Language',set_backup:'Backup (JSON)',set_backup_d:'Save all your data to a file',btn_backup:'Save',
+    set_restore:'Restore backup',set_restore_d:'Import a saved JSON file',btn_restore:'Restore',
+    set_clear:'Delete all data',set_clear_d:'Cannot be undone',btn_clear:'Delete',
+    about:'A field tool to register stores — works with no server, your data stays on your device.',
+    btn_cancel:'Cancel',btn_confirm:'Confirm',btn_delete:'Delete',act_edit:'Edit',act_map:'Map',act_del:'Delete',
+    t_saved:'Store saved',t_updated:'Store updated',t_deleted:'Deleted',t_need_name:'Enter the store name first',t_need_rep:'Enter the salesman name first',
+    t_locating:'Locating…',t_located:'Location captured',t_loc_denied:'Location permission denied — enable it in browser settings',
+    t_loc_unavail:'Could not get location',t_loc_timeout:'Location timed out — try again',t_no_geo:'Your device does not support geolocation',t_addr_loading:'Fetching address…',
+    t_max_photos:'Maximum 3 photos',t_no_stores:'No stores to export',t_exporting:'Building Excel file…',t_exported:'File exported',t_export_err:'Export failed — check connection',
+    t_backup_done:'Backup saved',t_restore_done:'Restored',t_restore_err:'Invalid file',t_cleared:'All data deleted',
+    t_no_persist:'Note: persistent storage unavailable here — deploy the app on your phone to save data',
+    m_del_title:'Delete this store?',m_del_body:'This store’s data and photos will be permanently removed.',
+    m_clear_title:'Delete all data?',m_clear_body:'All stores and photos will be permanently deleted. Back up first if needed.',
+    loc_done:'Done — adjust the pin if needed',km:'km',
+    btn_edit:'Edit',btn_done:'Done',addr_empty:'Tap “Get location” and the address fills automatically',addr_detail:'Detailed address',
+    lbl_notes:'Notes',ph_notes:'Any note about the store or customer (optional)',
+    opt_datetime:'Include date & time in the file',opt_datetime_d:'A capture-date column per store',
+    loc_iframe:'Location doesn’t work in the preview — open the published link on your phone',
+    dup_h:'⚠️ Nearby store already logged',dup_body:'You logged “{name}” {d} m away. Is it the same store?',dup_open:'Open existing store',dup_keep:'Continue as new store',m:'m'}
+};
+
+/* ===== 3. State ===== */
+let LANG='ar', stores=[], settings={rep:'',lang:'ar'}, editingId=null, currentPhotos=[];
+let curLoc={lat:null,lng:null,acc:null}, map=null, marker=null;
+let activeRegionFilter='', activeChannelFilter='', persistOK=true;
+const t=(k)=> (I18N[LANG][k] ?? k);
+
+/* ===== 4. IndexedDB (graceful) ===== */
+const DB_NAME='storepin_db', STORE='stores', META='meta'; let _db=null;
+function idb(){return new Promise((res)=>{ if(_db) return res(_db);
+  try{ const rq=indexedDB.open(DB_NAME,1);
+    rq.onupgradeneeded=e=>{const db=e.target.result; if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'id'}); if(!db.objectStoreNames.contains(META))db.createObjectStore(META,{keyPath:'k'});};
+    rq.onsuccess=e=>{_db=e.target.result; res(_db);}; rq.onerror=()=>{persistOK=false; res(null);};
+  }catch(err){persistOK=false; res(null);} });}
+async function dbAllStores(){const db=await idb(); if(!db)return []; return new Promise(r=>{try{const tx=db.transaction(STORE,'readonly').objectStore(STORE).getAll(); tx.onsuccess=()=>r(tx.result||[]); tx.onerror=()=>r([]);}catch(e){r([]);}});}
+async function dbPut(rec){const db=await idb(); if(!db){persistOK=false; return;} return new Promise(r=>{try{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(rec); tx.oncomplete=()=>r(); tx.onerror=()=>{persistOK=false;r();};}catch(e){persistOK=false;r();}});}
+async function dbDelete(id){const db=await idb(); if(!db)return; return new Promise(r=>{try{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r();}catch(e){r();}});}
+async function dbClear(){const db=await idb(); if(!db)return; return new Promise(r=>{try{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear(); tx.oncomplete=()=>r(); tx.onerror=()=>r();}catch(e){r();}});}
+async function metaGet(k){const db=await idb(); if(!db)return null; return new Promise(r=>{try{const tx=db.transaction(META,'readonly').objectStore(META).get(k); tx.onsuccess=()=>r(tx.result?tx.result.v:null); tx.onerror=()=>r(null);}catch(e){r(null);}});}
+async function metaPut(k,v){const db=await idb(); if(!db)return; return new Promise(r=>{try{const tx=db.transaction(META,'readwrite'); tx.objectStore(META).put({k,v}); tx.oncomplete=()=>r(); tx.onerror=()=>r();}catch(e){r();}});}
+
+/* ===== 5. Utilities ===== */
+function uid(){return 'st_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function haversine(a,b,c,d){const R=6371,dLat=(c-a)*Math.PI/180,dLng=(d-b)*Math.PI/180; const s=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2; return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));}
+function nearestCity(lat,lng){let best=null,bd=Infinity; for(const c of CITIES){if(c.nogeo)continue; const d=haversine(lat,lng,c.lat,c.lng); if(d<bd){bd=d;best=c;}} return best?{city:best,dist:bd}:null;}
+function cityByName(name){if(!name)return null; const n=name.trim().toLowerCase(); return CITIES.find(c=>c.en.toLowerCase()===n||c.ar===name.trim())||null;}
+function regionLabel(code){const r=REGIONS[code]; return r?(LANG==='ar'?r.ar:r.en):'';}
+function cityLabel(c){return c?(LANG==='ar'?c.ar:c.en):'';}
+function toast(msg,type){const w=document.getElementById('toastWrap'); const el=document.createElement('div'); el.className='toast'+(type?(' '+type):'');
+  const ic=type==='ok'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>':type==='err'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>':'';
+  el.innerHTML=ic+'<span>'+esc(msg)+'</span>'; w.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .3s, transform .3s'; el.style.opacity='0'; el.style.transform='translateY(8px)'; setTimeout(()=>el.remove(),300);},2600);}
+
+/* ===== 6. Navigation ===== */
+function go(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active')); document.getElementById('nav-'+page).classList.add('active');
+  document.getElementById('saveBar').style.display=(page==='add')?'flex':'none'; if(page==='stores')renderStores(); window.scrollTo({top:0});}
+
+/* ===== 7. Language ===== */
+function applyLang(){const dir=LANG==='ar'?'rtl':'ltr'; document.documentElement.lang=LANG; document.documentElement.dir=dir;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const txt=t(el.getAttribute('data-i18n'));
+    if(el.children.length===0){el.textContent=txt;}
+    else{let done=false; for(let i=el.childNodes.length-1;i>=0;i--){const n=el.childNodes[i]; if(n.nodeType===3&&n.textContent.trim()){n.textContent=' '+txt; done=true; break;}} if(!done)el.appendChild(document.createTextNode(' '+txt));}});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.getAttribute('data-i18n-ph'));});
+  document.getElementById('langLbl').textContent=LANG==='ar'?'EN':'ع';
+  document.getElementById('langDesc').textContent=LANG==='ar'?'العربية':'English';
+  document.getElementById('langDescBtn').textContent=LANG==='ar'?'English':'العربية';
+  document.getElementById('saveLbl').textContent=editingId?t('btn_update'):t('btn_save');
+  document.querySelector('#editToggle span').textContent=addrEditing?t('btn_done'):t('btn_edit');
+  buildCityDatalist(); buildFilterChips(); renderPhotos(); refreshAddrSummary(); renderDup();
+  if(document.getElementById('page-stores').classList.contains('active'))renderStores();
+  if(map)setTimeout(()=>map.invalidateSize(),60);}
+function toggleLang(){LANG=LANG==='ar'?'en':'ar'; settings.lang=LANG; metaPut('settings',settings); applyLang();}
+
+/* ===== 8. City datalist & filters ===== */
+function buildCityDatalist(){document.getElementById('cityList').innerHTML=CITIES.map(c=>`<option value="${esc(LANG==='ar'?c.ar:c.en)}">${esc(LANG==='ar'?c.en:c.ar)} · ${esc(regionLabel(c.r))}</option>`).join('');}
+function buildFilterChips(){const fr=document.getElementById('filterRegions');
+  fr.innerHTML=`<button class="chip ${activeRegionFilter===''?'active':''}" onclick="setRegionFilter('')">${LANG==='ar'?'الكل':'All'}</button>`+Object.keys(REGIONS).map(code=>`<button class="chip ${activeRegionFilter===code?'active':''}" onclick="setRegionFilter('${code}')">${esc(regionLabel(code))}</button>`).join('');
+  const fc=document.getElementById('filterChannels');
+  fc.innerHTML=`<button class="chip ${activeChannelFilter===''?'active':''}" onclick="setChannelFilter('')">${LANG==='ar'?'الكل':'All'}</button>`+Object.keys(CHANNELS).map(code=>`<button class="chip ${activeChannelFilter===code?'active':''}" onclick="setChannelFilter('${code}')">${code}</button>`).join('');
+  const n=(activeRegionFilter?1:0)+(activeChannelFilter?1:0); const badge=document.getElementById('filterBadge'); badge.textContent=n; badge.classList.toggle('hide',n===0);
+  document.getElementById('filterToggle').classList.toggle('on',n>0);}
+function toggleFilters(){document.getElementById('filters').classList.toggle('show');}
+function setRegionFilter(c){activeRegionFilter=c; buildFilterChips(); renderStores();}
+function setChannelFilter(c){activeChannelFilter=c; buildFilterChips(); renderStores();}
+
+/* ===== 9. Location & auto-fill ===== */
+const IN_IFRAME=(()=>{try{return window.self!==window.top;}catch(e){return true;}})();
+const DUP_RADIUS_M=55; let _locWatch=null,_locDone=false,_dupMatch=null,addrEditing=false;
+function setField(wrapId,inputId,value){const inp=document.getElementById(inputId); inp.value=value||''; document.getElementById(wrapId).classList.toggle('filled',!!value);}
+function refreshAddrSummary(){
+  const region=document.getElementById('fRegion').value, cityVal=document.getElementById('fCity').value.trim();
+  const hood=document.getElementById('fHood').value.trim(), addr=document.getElementById('fAddr').value.trim();
+  const has=!!(region||cityVal||hood||addr||curLoc.lat!=null);
+  document.getElementById('addrEmpty').classList.toggle('hide',has);
+  document.getElementById('addrSummary').classList.toggle('hide',!has);
+  if(!addrEditing)document.getElementById('editToggle').classList.toggle('hide',!has);
+  const set=(id,val)=>{const el=document.getElementById(id); el.textContent=val||'—'; el.classList.toggle('muted',!val);};
+  set('sumRegion',region?regionLabel(region):'');
+  const m=cityByName(cityVal); set('sumCity',cityVal?(m?cityLabel(m):cityVal):'');
+  set('sumHood',hood); document.getElementById('sumAddr').textContent=addr||'—';
+}
+function toggleAddrEdit(){addrEditing=!addrEditing;
+  document.getElementById('addrEdit').classList.toggle('hide',!addrEditing);
+  document.getElementById('addrSummary').classList.toggle('hide',addrEditing);
+  const btn=document.getElementById('editToggle'); btn.classList.remove('hide'); btn.classList.toggle('on',addrEditing); btn.querySelector('span').textContent=addrEditing?t('btn_done'):t('btn_edit');
+  if(!addrEditing)refreshAddrSummary();}
+function toggleAddrDetail(){const d=document.getElementById('addrDetail'),btn=document.getElementById('addrDetailToggle'); const hidden=d.classList.toggle('hide'); btn.classList.toggle('open',!hidden);}
+function findNearbyStore(lat,lng){if(lat==null||lng==null)return null; let best=null,bd=Infinity;
+  for(const s of stores){if(s.id===editingId)continue; if(s.lat==null||s.lng==null)continue; const dM=haversine(lat,lng,s.lat,s.lng)*1000; if(dM<bd){bd=dM;best=s;}}
+  return (best&&bd<=DUP_RADIUS_M)?{store:best,dist:Math.round(bd)}:null;}
+function renderDup(){const el=document.getElementById('dupWarn');
+  if(!_dupMatch){el.classList.add('hide'); el.innerHTML=''; return;}
+  const s=_dupMatch.store,d=_dupMatch.dist; const body=t('dup_body').replace('{name}',esc(s.customer)).replace('{d}',d);
+  el.classList.remove('hide');
+  el.innerHTML=`<div class="dw-top"><div class="dw-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17v.01M10.3 3.9l-8 14A2 2 0 004 21h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/></svg></div><div class="dw-tx"><div class="h">${t('dup_h')}</div><div class="b">${body}</div></div></div><div class="dw-acts"><button class="dw-open" onclick="editStore('${s.id}')">${t('dup_open')}</button><button class="dw-keep" onclick="dismissDup()">${t('dup_keep')}</button></div>`;}
+function checkDuplicate(lat,lng){_dupMatch=findNearbyStore(lat,lng); renderDup();}
+function dismissDup(){_dupMatch=null; renderDup();}
+function getLocation(){const card=document.getElementById('locCard'); if(!('geolocation' in navigator)){toast(t('t_no_geo'),'err'); return;}
+  card.classList.add('locating'); card.classList.remove('located'); document.getElementById('locBtn').disabled=true; document.getElementById('locSub').textContent=t('t_locating');
+  _locDone=false; clearTimeout(_locWatch);
+  _locWatch=setTimeout(()=>{if(_locDone)return; document.getElementById('locCard').classList.remove('locating'); document.getElementById('locBtn').disabled=false; document.getElementById('locSub').textContent=t('loc_p'); toast(IN_IFRAME?t('loc_iframe'):t('t_loc_timeout'),'err');},17000);
+  try{navigator.geolocation.getCurrentPosition(onLocOK,onLocErr,{enableHighAccuracy:true,timeout:15000,maximumAge:0});}
+  catch(e){_locDone=true; clearTimeout(_locWatch); document.getElementById('locCard').classList.remove('locating'); document.getElementById('locBtn').disabled=false; document.getElementById('locSub').textContent=t('loc_p'); toast(IN_IFRAME?t('loc_iframe'):t('t_loc_unavail'),'err');}}
+function onLocOK(pos){_locDone=true; clearTimeout(_locWatch);
+  const card=document.getElementById('locCard'); card.classList.remove('locating'); card.classList.add('located'); document.getElementById('locBtn').disabled=false;
+  const {latitude:lat,longitude:lng,accuracy:acc}=pos.coords; curLoc={lat,lng,acc:Math.round(acc)};
+  document.getElementById('coordsBox').classList.remove('hide'); document.getElementById('coordsTxt').textContent=lat.toFixed(5)+', '+lng.toFixed(5); document.getElementById('accTxt').textContent='±'+Math.round(acc)+'m';
+  document.getElementById('locTitle').textContent=t('t_located'); document.getElementById('locSub').textContent=t('loc_done');
+  const near=nearestCity(lat,lng);
+  if(near&&near.dist<=80){document.getElementById('fCity').value=cityLabel(near.city); document.getElementById('fRegion').value=near.city.r; showSnaps(near.city,Math.round(near.dist));}
+  else{document.getElementById('autoStrip').classList.add('empty');}
+  refreshAddrSummary(); showMap(lat,lng); reverseGeocode(lat,lng); checkDuplicate(lat,lng); toast(t('t_located'),'ok');}
+function onLocErr(err){_locDone=true; clearTimeout(_locWatch);
+  const card=document.getElementById('locCard'); card.classList.remove('locating'); document.getElementById('locBtn').disabled=false; document.getElementById('locSub').textContent=t('loc_p');
+  let msg=IN_IFRAME?t('loc_iframe'):(err.code===1?t('t_loc_denied'):err.code===3?t('t_loc_timeout'):t('t_loc_unavail')); toast(msg,'err');}
+function showSnaps(city,dist){const strip=document.getElementById('autoStrip'); strip.classList.remove('empty');
+  strip.innerHTML=`<span class="snap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>${esc(regionLabel(city.r))}</span><span class="snap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>${esc(cityLabel(city))}</span><span class="snap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>~${dist} ${t('km')}</span>`;}
+function showMap(lat,lng){const note=document.getElementById('mapNote'),mEl=document.getElementById('map');
+  if(typeof L==='undefined'){note.classList.add('hide'); mEl.classList.remove('show'); return;}
+  note.classList.remove('hide'); mEl.classList.add('show');
+  try{ if(!map){map=L.map('map',{zoomControl:true,attributionControl:false}).setView([lat,lng],16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+      marker=L.marker([lat,lng],{draggable:true}).addTo(map);
+      marker.on('dragend',()=>{const p=marker.getLatLng(); curLoc.lat=p.lat; curLoc.lng=p.lng; document.getElementById('coordsTxt').textContent=p.lat.toFixed(5)+', '+p.lng.toFixed(5);});
+    }else{map.setView([lat,lng],16); marker.setLatLng([lat,lng]);}
+    setTimeout(()=>map.invalidateSize(),120);
+  }catch(e){note.classList.add('hide'); mEl.classList.remove('show');}}
+async function reverseGeocode(lat,lng){const hoodEl=document.getElementById('fHood'),addrEl=document.getElementById('fAddr'); if(!addrEl.value){addrEl.placeholder=t('t_addr_loading');}
+  try{ const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=${LANG}`;
+    const res=await fetch(url,{headers:{'Accept':'application/json'}}); if(!res.ok)throw 0; const d=await res.json(); const a=d.address||{};
+    const hood=a.neighbourhood||a.suburb||a.quarter||a.city_district||a.residential||a.hamlet||'';
+    if(hood&&!hoodEl.value){hoodEl.value=hood;}
+    if(d.display_name&&!addrEl.value){addrEl.value=d.display_name;}
+    if(!document.getElementById('fCity').value){const cn=a.city||a.town||a.village||a.county||''; const match=cityByName(cn);
+      if(match){document.getElementById('fCity').value=cityLabel(match); document.getElementById('fRegion').value=match.r;}
+      else if(cn){document.getElementById('fCity').value=cn;}}
+    refreshAddrSummary();
+  }catch(e){addrEl.placeholder=t('ph_addr');}}
+
+/* ===== 10. Photos ===== */
+document.getElementById('photoInput').addEventListener('change',async(e)=>{const file=e.target.files[0]; e.target.value=''; if(!file)return;
+  if(currentPhotos.length>=3){toast(t('t_max_photos'),'err'); return;}
+  try{const b64=await compressImage(file); currentPhotos.push(b64); renderPhotos();}catch(err){toast('⚠','err');}});
+function compressImage(file){return new Promise((res,rej)=>{const reader=new FileReader();
+  reader.onload=()=>{const img=new Image(); img.onload=()=>{const max=1280; let w=img.width,h=img.height;
+    if(w>h&&w>max){h=Math.round(h*max/w); w=max;} else if(h>=w&&h>max){w=Math.round(w*max/h); h=max;}
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); res(cv.toDataURL('image/jpeg',0.72));};
+    img.onerror=rej; img.src=reader.result;}; reader.onerror=rej; reader.readAsDataURL(file);});}
+function renderPhotos(){const grid=document.getElementById('photoGrid');
+  let html=currentPhotos.map((p,i)=>`<div class="ph"><img src="${p}" alt=""><button class="rm" onclick="removePhoto(${i})" aria-label="remove">✕</button></div>`).join('');
+  if(currentPhotos.length<3){html+=`<button class="ph-add" onclick="document.getElementById('photoInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/><path d="M19 4v3M17.5 5.5h3" stroke-width="2"/></svg><span>${t('ph_add')}</span></button>`;}
+  grid.innerHTML=html;}
+function removePhoto(i){currentPhotos.splice(i,1); renderPhotos();}
+
+/* ===== 11. Save / form ===== */
+function syncRep(name){settings.rep=name; metaPut('settings',settings); document.getElementById('repInput').value=name; document.getElementById('repInput2').value=name;
+  const chip=document.getElementById('repChip'); if(name){chip.classList.remove('hide'); document.getElementById('repName').textContent=name; document.getElementById('repAv').textContent=name.trim().charAt(0).toUpperCase()||'?';} else chip.classList.add('hide');}
+async function saveStore(){const name=document.getElementById('fCustomer').value.trim(); const rep=document.getElementById('repInput').value.trim();
+  if(!rep){toast(t('t_need_rep'),'err'); go('add'); document.getElementById('repInput').focus(); return;}
+  if(!name){toast(t('t_need_name'),'err'); document.getElementById('fCustomer').focus(); return;}
+  const cityVal=document.getElementById('fCity').value.trim(); const matched=cityByName(cityVal);
+  const rec={id:editingId||uid(),rep,customer:name,contact:document.getElementById('fContact').value.trim(),phone:document.getElementById('fPhone').value.trim(),
+    sales:document.getElementById('fSales').value.trim(),channel:document.getElementById('fChannel').value,region:document.getElementById('fRegion').value,
+    city:cityVal,cityEn:matched?matched.en:cityVal,hood:document.getElementById('fHood').value.trim(),address:document.getElementById('fAddr').value.trim(),
+    notes:document.getElementById('fNotes').value.trim(),
+    lat:curLoc.lat,lng:curLoc.lng,acc:curLoc.acc,photos:[...currentPhotos],
+    createdAt:editingId?(stores.find(s=>s.id===editingId)?.createdAt||Date.now()):Date.now(),updatedAt:Date.now()};
+  await dbPut(rec); const idx=stores.findIndex(s=>s.id===rec.id); if(idx>=0)stores[idx]=rec; else stores.unshift(rec);
+  const wasEdit=!!editingId; toast(wasEdit?t('t_updated'):t('t_saved'),'ok'); if(!persistOK)setTimeout(()=>toast(t('t_no_persist'),'err'),400);
+  clearForm(false); if(wasEdit)go('stores');}
+function clearForm(focusFirst){editingId=null;
+  ['fCustomer','fContact','fPhone','fSales','fCity','fHood','fAddr','fNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fChannel').value=''; document.getElementById('fRegion').value='';
+  ['wrapRegion','wrapCity','wrapHood','wrapAddr'].forEach(id=>document.getElementById(id).classList.remove('filled'));
+  currentPhotos=[]; renderPhotos(); curLoc={lat:null,lng:null,acc:null};
+  const card=document.getElementById('locCard'); card.classList.remove('located','locating');
+  document.getElementById('coordsBox').classList.add('hide'); document.getElementById('autoStrip').classList.add('empty');
+  document.getElementById('map').classList.remove('show'); document.getElementById('mapNote').classList.add('hide');
+  _dupMatch=null; renderDup();
+  addrEditing=false; document.getElementById('addrEdit').classList.add('hide');
+  document.getElementById('addrDetail').classList.add('hide'); document.getElementById('addrDetailToggle').classList.remove('open');
+  const et=document.getElementById('editToggle'); et.classList.remove('on'); et.querySelector('span').textContent=t('btn_edit');
+  refreshAddrSummary();
+  document.getElementById('locTitle').textContent=t('loc_h'); document.getElementById('locSub').textContent=t('loc_p'); document.getElementById('saveLbl').textContent=t('btn_save');
+  if(focusFirst)window.scrollTo({top:0,behavior:'smooth'});}
+function editStore(id){const s=stores.find(x=>x.id===id); if(!s)return; editingId=id;
+  document.getElementById('fCustomer').value=s.customer||''; document.getElementById('fContact').value=s.contact||''; document.getElementById('fPhone').value=s.phone||'';
+  document.getElementById('fSales').value=s.sales||''; document.getElementById('fChannel').value=s.channel||''; document.getElementById('fRegion').value=s.region||'';
+  document.getElementById('fCity').value=s.city||(s.cityEn||''); document.getElementById('fHood').value=s.hood||''; document.getElementById('fAddr').value=s.address||'';
+  document.getElementById('fNotes').value=s.notes||'';
+  currentPhotos=[...(s.photos||[])]; renderPhotos(); curLoc={lat:s.lat,lng:s.lng,acc:s.acc};
+  _dupMatch=null; renderDup();
+  addrEditing=false; document.getElementById('addrEdit').classList.add('hide'); const et=document.getElementById('editToggle'); et.classList.remove('on'); et.querySelector('span').textContent=t('btn_edit');
+  refreshAddrSummary();
+  if(s.lat&&s.lng){document.getElementById('coordsBox').classList.remove('hide'); document.getElementById('coordsTxt').textContent=Number(s.lat).toFixed(5)+', '+Number(s.lng).toFixed(5);
+    document.getElementById('accTxt').textContent=s.acc?('±'+s.acc+'m'):''; document.getElementById('locCard').classList.add('located'); document.getElementById('locTitle').textContent=t('t_located'); showMap(s.lat,s.lng);}
+  document.getElementById('saveLbl').textContent=t('btn_update'); go('add');}
+
+/* ===== 12. Stores list ===== */
+function storeMatchesSearch(s,q){if(!q)return true; q=q.toLowerCase(); return [s.customer,s.city,s.cityEn,s.hood,s.contact,s.address,s.phone,s.notes].some(v=>(v||'').toLowerCase().includes(q));}
+function renderStores(){document.getElementById('stTotal').textContent=stores.length;
+  document.getElementById('stMT').textContent=stores.filter(s=>s.channel==='MT').length;
+  document.getElementById('stTT').textContent=stores.filter(s=>s.channel==='TT').length;
+  document.getElementById('stWH').textContent=stores.filter(s=>s.channel==='WH').length;
+  const q=document.getElementById('searchInput').value.trim(); let list=stores.filter(s=>storeMatchesSearch(s,q));
+  if(activeRegionFilter)list=list.filter(s=>s.region===activeRegionFilter); if(activeChannelFilter)list=list.filter(s=>s.channel===activeChannelFilter);
+  list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const wrap=document.getElementById('storeList'); document.getElementById('exportBtn').style.display=stores.length?'inline-flex':'none';
+  if(!stores.length){wrap.innerHTML=emptyHTML(false); return;} if(!list.length){wrap.innerHTML=emptyHTML(true); return;}
+  wrap.innerHTML=list.map(s=>{const ch=s.channel?`<span class="tag ${s.channel}">${s.channel}</span>`:''; const cityTxt=LANG==='ar'?(s.city||''):(s.cityEn||s.city||''); const reg=s.region?regionLabel(s.region):'';
+    const thumb=(s.photos&&s.photos.length)?`<img src="${s.photos[0]}" alt="">${s.photos.length>1?`<span class="cnt">+${s.photos.length-1}</span>`:''}`:`<span class="noimg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l1.5-5h15L21 9M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M3 9h18"/></svg></span>`;
+    const mapBtn=(s.lat&&s.lng)?`<button class="map" onclick="openMap(${s.lat},${s.lng})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-6 2V6l6-2 6 2 6-2v16l-6 2-6-2zM9 4v16M15 6v16"/></svg>${t('act_map')}</button>`:'';
+    const metaBits=[reg,cityTxt,s.hood].filter(Boolean); const meta=metaBits.map((m,i)=>`${i>0?'<span class="dot"></span>':''}<span>${esc(m)}</span>`).join('');
+    return `<div class="store"><div class="top"><div class="thumb">${thumb}</div><div class="info">
+      <div class="nm">${esc(s.customer)}${ch?'  '+ch:''}</div>
+      <div class="meta">${meta||'<span style="color:var(--muted-2)">'+t('lbl_addr')+'</span>'}</div>
+      ${s.contact||s.phone?`<div class="addr">${esc([s.contact,s.phone].filter(Boolean).join(' · '))}</div>`:''}
+      ${s.sales?`<div class="addr" style="color:var(--brand-deep);font-weight:700">${LANG==='ar'?'متوسط أسبوعي':'Weekly avg'}: ${esc(s.sales)} ${LANG==='ar'?'ر.س':'SAR'}</div>`:''}
+      ${s.notes?`<div class="addr" style="display:flex;gap:5px;align-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 auto"><path d="M4 4h16v12H8l-4 4V4z"/></svg>${esc(s.notes)}</div>`:''}
+      </div></div>
+      <div class="acts">
+        <button onclick="editStore('${s.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>${t('act_edit')}</button>
+        ${mapBtn}
+        <button class="del" onclick="askDelete('${s.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>${t('act_del')}</button>
+      </div></div>`;}).join('');}
+function emptyHTML(isSearch){return `<div class="empty"><div class="ill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l1.5-5h15L21 9M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M3 9h18"/>${isSearch?'<path d="M9 13h6"/>':'<path d="M12 12v5M9.5 14.5h5"/>'}</svg></div>
+    <h4>${isSearch?t('empty_search_h'):t('empty_h')}</h4><p>${isSearch?t('empty_search_p'):t('empty_p')}</p>
+    ${isSearch?'':`<button class="btn btn-primary" style="max-width:240px;margin:0 auto" onclick="go('add')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>${t('empty_btn')}</button>`}</div>`;}
+function openMap(lat,lng){window.open(`https://www.google.com/maps?q=${lat},${lng}`,'_blank');}
+
+/* ===== 13. Modal ===== */
+let _modalAction=null;
+function modal(title,body,confirmLabel,danger,action){document.getElementById('mTitle').textContent=title; document.getElementById('mBody').textContent=body;
+  const c=document.getElementById('mConfirm'); c.textContent=confirmLabel; c.className='btn '+(danger?'btn-danger':'btn-primary'); _modalAction=action;
+  c.onclick=()=>{closeModal(); if(_modalAction)_modalAction();}; document.getElementById('mCancel').textContent=t('btn_cancel'); document.getElementById('overlay').classList.add('show');}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+function askDelete(id){modal(t('m_del_title'),t('m_del_body'),t('btn_delete'),true,async()=>{await dbDelete(id); stores=stores.filter(s=>s.id!==id); toast(t('t_deleted'),'ok'); renderStores();});}
+function confirmClearAll(){modal(t('m_clear_title'),t('m_clear_body'),t('btn_clear'),true,async()=>{await dbClear(); stores=[]; toast(t('t_cleared'),'ok'); renderStores();});}
+
+/* ===== 14. Excel export (ExcelJS + embedded photos) ===== */
+function dl(blob,filename){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);}
+function fmtDate(ts){const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+function stamp(){const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;}
+function safeName(s){return (s||'Export').replace(/[^\w\u0600-\u06FF\- ]/g,'').trim().replace(/\s+/g,'_')||'Export';}
+function regionEn(code){return REGIONS[code]?REGIONS[code].en:'';}
+function composeAddr(s){if(s.address)return s.address; return [s.hood,s.cityEn||s.city,regionEn(s.region)].filter(Boolean).join(', ');}
+
+function colL(n){let s=''; while(n>0){const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s;}
+async function exportExcel(){
+  if(!stores.length){toast(t('t_no_stores'),'err'); return;}
+  if(typeof ExcelJS==='undefined'){toast(t('t_export_err'),'err'); return;}
+  const includeDate=document.getElementById('incDate').checked;
+  toast(t('t_exporting'));
+  try{
+    const wb=new ExcelJS.Workbook(); wb.creator='StorePin'; wb.created=new Date();
+    const ws=wb.addWorksheet('Stores',{views:[{state:'frozen',ySplit:1}]});
+    const cols=[{h:'Salesman',k:'rep',w:16}];
+    if(includeDate)cols.push({h:'Date Added',k:'date',w:18});
+    cols.push({h:'Customer Name',k:'customer',w:28},{h:'Contact Name',k:'contact',w:20},{h:'Contact No',k:'phone',w:16},
+      {h:'Average weekly sales',k:'sales',w:18},{h:'Region',k:'region',w:12},{h:'City',k:'city',w:16},
+      {h:'Distribution Channel',k:'channel',w:20},{h:'Customer Address / Location',k:'address',w:44},{h:'Notes',k:'notes',w:30},
+      {h:'Latitude',k:'lat',w:13},{h:'Longitude',k:'lng',w:13},{h:'Map Link',k:'map',w:11},
+      {h:'Store Photo 1',k:'p0',w:17},{h:'Store Photo 2',k:'p1',w:17},{h:'Store Photo 3',k:'p2',w:17});
+    ws.columns=cols.map(c=>({header:c.h,key:c.k,width:c.w}));
+    const cidx={}; cols.forEach((c,i)=>cidx[c.k]=i+1);
+    const thin={style:'thin',color:{argb:'FFD8E0E8'}};
+    const hr=ws.getRow(1); hr.height=28;
+    hr.eachCell(cell=>{cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0A2540'}}; cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11}; cell.alignment={vertical:'middle',horizontal:'center',wrapText:true}; cell.border={top:thin,bottom:thin,left:thin,right:thin};});
+    const data=[...stores].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    data.forEach(s=>{
+      const row=ws.addRow({rep:s.rep||'',date:fmtDate(s.createdAt||s.updatedAt||Date.now()),customer:s.customer||'',
+        contact:s.contact||'',phone:s.phone||'',sales:(s.sales!==''&&s.sales!=null&&!isNaN(Number(s.sales)))?Number(s.sales):(s.sales||''),
+        region:regionEn(s.region),city:s.cityEn||s.city||'',channel:s.channel?(s.channel+' - '+(CHANNELS[s.channel]?CHANNELS[s.channel].en:'')):'',
+        address:composeAddr(s),notes:s.notes||'',lat:s.lat!=null?Number(s.lat).toFixed(6):'',lng:s.lng!=null?Number(s.lng).toFixed(6):'',map:''});
+      const rn=row.number;
+      row.eachCell({includeEmpty:true},cell=>{cell.alignment={vertical:'middle',wrapText:false}; cell.border={top:thin,bottom:thin,left:thin,right:thin}; cell.font={size:10.5};});
+      ws.getCell(rn,cidx.phone).numFmt='@';
+      ws.getCell(rn,cidx.sales).numFmt='#,##0'; ws.getCell(rn,cidx.sales).alignment={vertical:'middle',horizontal:'right'};
+      ws.getCell(rn,cidx.region).alignment={vertical:'middle',horizontal:'center'};
+      ws.getCell(rn,cidx.address).alignment={vertical:'middle',wrapText:true};
+      ws.getCell(rn,cidx.notes).alignment={vertical:'middle',wrapText:true};
+      ws.getCell(rn,cidx.lat).numFmt='@'; ws.getCell(rn,cidx.lng).numFmt='@';
+      if(s.lat!=null&&s.lng!=null){const c=ws.getCell(rn,cidx.map); c.value={text:'Open',hyperlink:`https://www.google.com/maps?q=${s.lat},${s.lng}`}; c.font={color:{argb:'FF066E66'},underline:true,size:10.5}; c.alignment={vertical:'middle',horizontal:'center'};}
+      const ph=s.photos||[]; if(ph.length)row.height=66;
+      ph.slice(0,3).forEach((url,i)=>{ try{
+        const semi=url.indexOf(';'); const ext=semi>5?url.substring(5,semi).split('/')[1]:'jpeg'; const b64=url.split(',')[1]; if(!b64)return;
+        const imgId=wb.addImage({base64:b64,extension:(ext==='png'?'png':'jpeg')});
+        ws.addImage(imgId,{tl:{col:cidx.p0-1+i+0.08,row:rn-1+0.08},ext:{width:104,height:78},editAs:'oneCell'});
+      }catch(e){} });
+    });
+    ws.autoFilter=`A1:${colL(cidx.map)}1`;
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    dl(blob,`StorePin_${safeName(settings.rep)}_${stamp()}.xlsx`);
+    toast(t('t_exported'),'ok');
+  }catch(err){console.error(err); toast(t('t_export_err'),'err');}
+}
+
+/* ===== 15. JSON backup / restore ===== */
+function exportJSON(){
+  if(!stores.length){toast(t('t_no_stores'),'err'); return;}
+  const payload={app:'StorePin',version:1,exportedAt:new Date().toISOString(),rep:settings.rep||'',stores};
+  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+  dl(blob,`StorePin_backup_${stamp()}.json`); toast(t('t_backup_done'),'ok');
+}
+document.getElementById('restoreInput').addEventListener('change',(e)=>{const file=e.target.files[0]; e.target.value=''; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async()=>{ try{
+    const d=JSON.parse(reader.result); const incoming=Array.isArray(d)?d:(d.stores||[]);
+    if(!Array.isArray(incoming)||!incoming.length)throw 0;
+    // merge by id (incoming wins)
+    const map={}; stores.forEach(s=>map[s.id]=s); incoming.forEach(s=>{if(s&&s.id){map[s.id]=s; dbPut(s);} });
+    stores=Object.values(map);
+    if(d.rep&&!settings.rep){updateRep(d.rep,null);}
+    toast(t('t_restore_done'),'ok'); renderStores(); go('stores');
+  }catch(err){toast(t('t_restore_err'),'err');} };
+  reader.onerror=()=>toast(t('t_restore_err'),'err'); reader.readAsText(file);
+});
+
+/* ===== 16. Rep handling + boot ===== */
+function updateRep(name,source){settings.rep=name; metaPut('settings',settings);
+  if(source!=='repInput')document.getElementById('repInput').value=name;
+  if(source!=='repInput2')document.getElementById('repInput2').value=name;
+  const chip=document.getElementById('repChip');
+  if(name&&name.trim()){chip.classList.remove('hide'); document.getElementById('repName').textContent=name; document.getElementById('repAv').textContent=name.trim().charAt(0).toUpperCase();}
+  else chip.classList.add('hide');}
+document.getElementById('repInput').addEventListener('input',e=>updateRep(e.target.value,'repInput'));
+document.getElementById('repInput2').addEventListener('input',e=>updateRep(e.target.value,'repInput2'));
+// city -> region auto link
+document.getElementById('fCity').addEventListener('input',e=>{const m=cityByName(e.target.value);
+  document.getElementById('wrapCity').classList.toggle('filled',!!e.target.value);
+  if(m){document.getElementById('fRegion').value=m.r; document.getElementById('wrapRegion').classList.add('filled');}});
+document.getElementById('fRegion').addEventListener('change',e=>{document.getElementById('wrapRegion').classList.toggle('filled',!!e.target.value);});
+['fHood','fAddr'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{document.getElementById('wrap'+(id==='fHood'?'Hood':'Addr')).classList.toggle('filled',!!e.target.value);}));
+
+function saveExpPref(){settings.expDate=document.getElementById('incDate').checked; metaPut('settings',settings);}
+
+async function boot(){
+  const saved=await metaGet('settings');
+  if(saved){settings=Object.assign(settings,saved); LANG=settings.lang||'ar';}
+  document.getElementById('incDate').checked = settings.expDate!==false;
+  applyLang();
+  if(settings.rep)updateRep(settings.rep,null);
+  const all=await dbAllStores(); stores=all.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  renderPhotos(); renderStores(); refreshAddrSummary();
+  if(!persistOK){setTimeout(()=>toast(t('t_no_persist'),'err'),800);}
+}
+boot();
+</script>
+</body>
+</html>
