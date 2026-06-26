@@ -98,7 +98,8 @@ html[dir="ltr"] select.ctrl{background-position:right 12px center;}
 .coords{display:inline-flex; align-items:center; gap:9px; margin-top:12px; font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.3px; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16); padding:7px 12px; border-radius:999px; direction:ltr;}
 .coords.hide{display:none;}
 .coords .acc{color:var(--sun); font-weight:700;}
-.loc-actions{padding:14px 16px; display:flex; flex-direction:column; gap:9px;}
+.loc-actions{padding:4px 16px 12px; display:flex; flex-direction:column; gap:9px;}
+.addr-block{padding:0 16px 2px;}
 #map{height:185px; width:100%; background:#dfe6ec; display:none;}
 #map.show{display:block;}
 .map-note{font-size:11px; color:var(--muted-2); text-align:center; padding:8px 14px 2px;}
@@ -218,7 +219,7 @@ html[dir="ltr"] .toggle input:checked + .tr::before{transform:translateX(21px);}
 .addr-detail-toggle.open svg{transform:rotate(180deg);}
 .addr-detail{padding:0 14px 13px; font-size:12.5px; color:var(--muted); line-height:1.55;}
 .addr-edit{animation:fade .2s ease;}
-.notes-field{margin-top:13px; padding-top:13px; border-top:1px dashed var(--line);}
+.notes-field{margin:13px 16px 16px; padding-top:13px; border-top:1px dashed var(--line);}
 .notes-field textarea{min-height:54px;}
 /* duplicate location warning */
 .dup-warn{margin:0 14px 12px; border-radius:var(--r-sm); background:linear-gradient(180deg,#FFF7E8,#FFFBF3); border:1.5px solid #F3D49A; padding:12px 13px; animation:snap .35s ease;}
@@ -246,6 +247,7 @@ input.exp-sel{min-width:150px;}
 .store-status svg{width:18px; height:18px; flex:0 0 auto;}
 .store-status.ok{background:var(--ok-soft); color:#0E5C42; border:1px solid #BFE9D6;}
 .store-status.warn{background:var(--sun-soft); color:#8A5A00; border:1px solid #F3D49A;}
+.store-status.block{background:var(--danger-soft); color:#B23036; border:1px solid #F1B6B8;}
 @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
 @media (max-width:360px){ .stats{grid-template-columns:repeat(2,1fr);} }
 </style>
@@ -278,7 +280,8 @@ input.exp-sel{min-width:150px;}
     <div class="card loc-card" id="locCard">
       <div class="hd">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
-        <h3 data-i18n="loc_title">موقع المتجر</h3><span class="step">1</span>
+        <h3 data-i18n="loc_title">الموقع والعنوان</h3>
+        <button class="edit-toggle hide" id="editToggle" onclick="toggleAddrEdit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg><span data-i18n="btn_edit">تعديل</span></button>
       </div>
       <div class="bd">
         <div class="loc-hero">
@@ -288,14 +291,56 @@ input.exp-sel{min-width:150px;}
           <div class="coords hide" id="coordsBox"><span id="coordsTxt">—</span><span class="acc" id="accTxt"></span></div>
         </div>
         <div class="auto-strip empty" id="autoStrip"></div>
-        <div class="dup-warn hide" id="dupWarn"></div>
-        <div class="map-note hide" id="mapNote" data-i18n="map_note">اسحب الدبوس لضبط الموقع بدقة</div>
-        <div id="map"></div>
+        <!-- THE BUTTON — directly above the address box -->
         <div class="loc-actions">
           <button class="btn btn-primary" id="locBtn" onclick="getLocation()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
             <span data-i18n="btn_locate">تحديد الموقع</span>
           </button>
+        </div>
+        <div class="dup-warn hide" id="dupWarn"></div>
+        <!-- address box: empty hint before capture, auto-filled summary after -->
+        <div class="addr-block">
+          <div class="addr-empty" id="addrEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            <span data-i18n="addr_empty">اضغط «تحديد الموقع» وسيُملأ العنوان تلقائيًا</span>
+          </div>
+          <div class="addr-summary hide" id="addrSummary">
+            <div class="sum-row"><span class="sl" data-i18n="lbl_region">المنطقة</span><span class="sv" id="sumRegion">—</span></div>
+            <div class="sum-row"><span class="sl" data-i18n="lbl_city">المدينة</span><span class="sv" id="sumCity">—</span></div>
+            <div class="sum-row"><span class="sl" data-i18n="lbl_hood">الحي / الحارة</span><span class="sv" id="sumHood">—</span></div>
+            <button class="addr-detail-toggle" id="addrDetailToggle" onclick="toggleAddrDetail()">
+              <span data-i18n="addr_detail">العنوان التفصيلي</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="addr-detail hide" id="addrDetail"><span id="sumAddr">—</span></div>
+          </div>
+          <div class="addr-edit hide" id="addrEdit">
+            <div class="row2">
+              <div class="field" id="wrapRegion"><label data-i18n="lbl_region">المنطقة</label>
+                <select class="ctrl" id="fRegion">
+                  <option value="" data-i18n="opt_choose">— اختر —</option>
+                  <option value="E">الشرقية — East</option>
+                  <option value="W">الغربية — West</option>
+                  <option value="C">الوسطى — Center</option>
+                  <option value="N">الشمالية — North</option>
+                  <option value="S">الجنوبية — South</option>
+                </select></div>
+              <div class="field" id="wrapCity"><label data-i18n="lbl_city">المدينة</label>
+                <input class="ctrl" id="fCity" list="cityList" data-i18n-ph="ph_city" placeholder="المدينة" autocomplete="off" />
+                <datalist id="cityList"></datalist></div>
+            </div>
+            <div class="field" id="wrapHood"><label data-i18n="lbl_hood">الحي / الحارة</label>
+              <input class="ctrl" id="fHood" data-i18n-ph="ph_hood" placeholder="يُملأ من الموقع" autocomplete="off" /></div>
+            <div class="field" id="wrapAddr" style="margin-bottom:0;"><label data-i18n="lbl_addr">العنوان التفصيلي</label>
+              <textarea class="ctrl" id="fAddr" data-i18n-ph="ph_addr" placeholder="العنوان التفصيلي"></textarea></div>
+          </div>
+        </div>
+        <div class="map-note hide" id="mapNote" data-i18n="map_note">اسحب الدبوس لضبط الموقع بدقة</div>
+        <div id="map"></div>
+        <div class="field notes-field" style="margin-bottom:0;">
+          <label data-i18n="lbl_notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H8l-4 4V4z"/></svg> ملاحظات</label>
+          <textarea class="ctrl" id="fNotes" data-i18n-ph="ph_notes" placeholder="أي ملاحظة عن المتجر أو العميل (اختياري)"></textarea>
         </div>
       </div>
     </div>
@@ -303,7 +348,7 @@ input.exp-sel{min-width:150px;}
     <div class="card">
       <div class="hd">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M3 9h18"/></svg></span>
-        <h3 data-i18n="det_title">بيانات المتجر</h3><span class="step">2</span>
+        <h3 data-i18n="det_title">بيانات المتجر</h3>
       </div>
       <div class="bd">
         <div class="field"><label data-i18n="lbl_customer">اسم المتجر / العميل <span class="req">*</span></label>
@@ -326,62 +371,10 @@ input.exp-sel{min-width:150px;}
       </div>
     </div>
 
-    <div class="card" id="addrCard">
-      <div class="hd">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-        <h3 data-i18n="addr_title">المنطقة والعنوان</h3>
-        <button class="edit-toggle hide" id="editToggle" onclick="toggleAddrEdit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg><span data-i18n="btn_edit">تعديل</span></button>
-      </div>
-      <div class="bd">
-        <!-- empty state -->
-        <div class="addr-empty" id="addrEmpty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          <span data-i18n="addr_empty">اضغط «تحديد الموقع» وسيُملأ العنوان تلقائيًا</span>
-        </div>
-        <!-- auto-filled read-only summary -->
-        <div class="addr-summary hide" id="addrSummary">
-          <div class="sum-row"><span class="sl" data-i18n="lbl_region">المنطقة</span><span class="sv" id="sumRegion">—</span></div>
-          <div class="sum-row"><span class="sl" data-i18n="lbl_city">المدينة</span><span class="sv" id="sumCity">—</span></div>
-          <div class="sum-row"><span class="sl" data-i18n="lbl_hood">الحي / الحارة</span><span class="sv" id="sumHood">—</span></div>
-          <button class="addr-detail-toggle" id="addrDetailToggle" onclick="toggleAddrDetail()">
-            <span data-i18n="addr_detail">العنوان التفصيلي</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="addr-detail hide" id="addrDetail"><span id="sumAddr">—</span></div>
-        </div>
-        <!-- editable fields (hidden until edit) -->
-        <div class="addr-edit hide" id="addrEdit">
-          <div class="row2">
-            <div class="field" id="wrapRegion"><label data-i18n="lbl_region">المنطقة</label>
-              <select class="ctrl" id="fRegion">
-                <option value="" data-i18n="opt_choose">— اختر —</option>
-                <option value="E">الشرقية — East</option>
-                <option value="W">الغربية — West</option>
-                <option value="C">الوسطى — Center</option>
-                <option value="N">الشمالية — North</option>
-                <option value="S">الجنوبية — South</option>
-              </select></div>
-            <div class="field" id="wrapCity"><label data-i18n="lbl_city">المدينة</label>
-              <input class="ctrl" id="fCity" list="cityList" data-i18n-ph="ph_city" placeholder="المدينة" autocomplete="off" />
-              <datalist id="cityList"></datalist></div>
-          </div>
-          <div class="field" id="wrapHood"><label data-i18n="lbl_hood">الحي / الحارة</label>
-            <input class="ctrl" id="fHood" data-i18n-ph="ph_hood" placeholder="يُملأ من الموقع" autocomplete="off" /></div>
-          <div class="field" id="wrapAddr" style="margin-bottom:0;"><label data-i18n="lbl_addr">العنوان التفصيلي</label>
-            <textarea class="ctrl" id="fAddr" data-i18n-ph="ph_addr" placeholder="العنوان التفصيلي"></textarea></div>
-        </div>
-        <!-- notes (always editable) -->
-        <div class="field notes-field" style="margin-bottom:0;">
-          <label data-i18n="lbl_notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H8l-4 4V4z"/></svg> ملاحظات</label>
-          <textarea class="ctrl" id="fNotes" data-i18n-ph="ph_notes" placeholder="أي ملاحظة عن المتجر أو العميل (اختياري)"></textarea>
-        </div>
-      </div>
-    </div>
-
     <div class="card">
       <div class="hd">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L18 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/><circle cx="12" cy="12.5" r="3.2"/></svg></span>
-        <h3 data-i18n="ph_title">صور المتجر</h3><span class="step">3</span>
+        <h3 data-i18n="ph_title">صور المتجر</h3>
       </div>
       <div class="bd">
         <div class="photos" id="photoGrid"></div>
@@ -590,7 +583,7 @@ const CHANNELS={MT:{ar:'مودرن تريد',en:'Modern Trade'},TT:{ar:'بقال
 /* ===== 2. i18n ===== */
 const I18N={
   ar:{tagline:'سجل المتاجر الميداني',nav_add:'تسجيل',nav_stores:'المتاجر',nav_settings:'الإعدادات',
-    lbl_rep:'اسم المندوب',ph_rep:'اكتب اسمك (يُحفظ تلقائيًا)',loc_title:'موقع المتجر',loc_h:'حدّد موقعك الآن',
+    lbl_rep:'اسم المندوب',ph_rep:'اكتب اسمك (يُحفظ تلقائيًا)',loc_title:'الموقع والعنوان',loc_h:'حدّد موقعك الآن',
     loc_p:'قف أمام المتجر واضغط الزر لالتقاط الإحداثيات',btn_locate:'تحديد الموقع',map_note:'اسحب الدبوس لضبط الموقع بدقة',
     det_title:'بيانات المتجر',lbl_customer:'اسم المتجر / العميل',ph_customer:'مثال: بقالة الأمانة',lbl_channel:'قناة التوزيع',opt_choose:'— اختر —',
     lbl_contact:'اسم المسؤول',ph_contact:'اسم صاحب المحل',lbl_phone:'رقم الجوال',ph_phone:'05xxxxxxxx',
@@ -620,10 +613,12 @@ const I18N={
     opt_datetime:'إظهار التاريخ والوقت في الملف',opt_datetime_d:'عمود تاريخ التسجيل لكل متجر',
     loc_iframe:'تحديد الموقع لا يعمل داخل المعاينة — افتح الرابط المنشور على جوالك',
     dup_h:'⚠️ موقع قريب مسجّل سابقًا',dup_body:'سجّلت «{name}» على بُعد {d} متر من هنا. هل هو نفس المتجر؟',dup_open:'فتح المتجر الموجود',dup_keep:'متابعة كمتجر جديد',m:'م',
-    ss_ok:'بياناتك محفوظة على هذا الجهاز',ss_warn:'التخزين غير دائم هنا — افتح الرابط المنشور وأضِفه للشاشة الرئيسية، وخذ نسخة احتياطية من الإعدادات',
+    ss_ok:'بياناتك محفوظة على هذا الجهاز ✓',
+    ss_warn:'تعذّر حفظ البيانات في هذا المتصفح — افتح الرابط في Safari أو Chrome مباشرة (وليس من داخل واتساب)، وخذ نسخة احتياطية من الإعدادات',
+    ss_install:'لحفظ دائم مضمون: لا تفتح الرابط من داخل واتساب. افتحه في Safari ثم «أضف إلى الشاشة الرئيسية» وافتح التطبيق من الأيقونة. وللأمان خذ نسخة احتياطية من الإعدادات',
     exp_scope:'نطاق التصدير',exp_scope_d:'حمّل كل المتاجر أو متاجر يوم معيّن',exp_all:'كل التواريخ',exp_today:'اليوم فقط',exp_pick:'يوم محدد'},
   en:{tagline:'Field Store Registry',nav_add:'Add',nav_stores:'Stores',nav_settings:'Settings',
-    lbl_rep:'Salesman name',ph_rep:'Your name (saved automatically)',loc_title:'Store location',loc_h:'Pin your location',
+    lbl_rep:'Salesman name',ph_rep:'Your name (saved automatically)',loc_title:'Location & address',loc_h:'Pin your location',
     loc_p:'Stand in front of the store and tap to capture coordinates',btn_locate:'Get location',map_note:'Drag the pin to fine-tune the spot',
     det_title:'Store details',lbl_customer:'Store / customer name',ph_customer:'e.g. Al Amana Grocery',lbl_channel:'Distribution channel',opt_choose:'— Choose —',
     lbl_contact:'Contact name',ph_contact:'Owner name',lbl_phone:'Mobile number',ph_phone:'05xxxxxxxx',
@@ -653,7 +648,9 @@ const I18N={
     opt_datetime:'Include date & time in the file',opt_datetime_d:'A capture-date column per store',
     loc_iframe:'Location doesn’t work in the preview — open the published link on your phone',
     dup_h:'⚠️ Nearby store already logged',dup_body:'You logged “{name}” {d} m away. Is it the same store?',dup_open:'Open existing store',dup_keep:'Continue as new store',m:'m',
-    ss_ok:'Your data is saved on this device',ss_warn:'Storage isn’t persistent here — open the published link, add it to your home screen, and back up from Settings',
+    ss_ok:'Your data is saved on this device ✓',
+    ss_warn:'This browser can’t save data — open the link directly in Safari or Chrome (not inside WhatsApp), and back up from Settings',
+    ss_install:'For guaranteed saving: don’t open from inside WhatsApp. Open in Safari, then “Add to Home Screen” and launch from the icon. Also back up from Settings',
     exp_scope:'Export scope',exp_scope_d:'Export all stores or a specific day’s',exp_all:'All dates',exp_today:'Today only',exp_pick:'Specific day'}
 };
 
@@ -1019,18 +1016,29 @@ document.getElementById('fRegion').addEventListener('change',e=>{document.getEle
 
 function saveExpPref(){settings.expDate=document.getElementById('incDate').checked; metaPut('settings',settings);}
 function dayKey(ts){const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+function isStandalone(){try{return (window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);}catch(e){return false;}}
+async function storageSelfTest(){
+  let lsOK=false, idbOK=false;
+  try{ localStorage.setItem('__sp_probe','1'); lsOK=(localStorage.getItem('__sp_probe')==='1'); localStorage.removeItem('__sp_probe'); }catch(e){ lsOK=false; }
+  try{ await metaPut('__probe',Date.now()); const v=await metaGet('__probe'); idbOK=(v!=null); }catch(e){ idbOK=false; }
+  persistOK = lsOK || idbOK;
+  return {lsOK,idbOK};
+}
 function onScopeChange(){const v=document.getElementById('expScope').value; const row=document.getElementById('expDayRow');
   row.classList.toggle('hide',v!=='pick');
   if(v==='pick'&&!document.getElementById('expDay').value){document.getElementById('expDay').value=dayKey(Date.now());}}
 function updateStorageStatus(){const el=document.getElementById('storeStatus'); if(!el)return;
   const warnIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17v.01M10.3 3.9l-8 14A2 2 0 004 21h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/></svg>';
   const okIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>';
-  if(!persistOK){el.className='store-status warn'; el.innerHTML=warnIc+'<span>'+t('ss_warn')+'</span>'; el.classList.remove('hide');}
+  const infoIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16v-5M12 8v.01M12 22a10 10 0 100-20 10 10 0 000 20z"/></svg>';
+  if(!persistOK){el.className='store-status block'; el.innerHTML=warnIc+'<span>'+t('ss_warn')+'</span>'; el.classList.remove('hide');}
+  else if(!isStandalone()){el.className='store-status warn'; el.innerHTML=infoIc+'<span>'+t('ss_install')+'</span>'; el.classList.remove('hide');}
   else if(stores.length){el.className='store-status ok'; el.innerHTML=okIc+'<span>'+t('ss_ok')+'</span>'; el.classList.remove('hide');}
   else{el.classList.add('hide');}}
 
 async function boot(){
   requestPersist();
+  await storageSelfTest();
   let saved=await metaGet('settings'); if(!saved)saved=loadSettingsLS();
   if(saved){settings=Object.assign(settings,saved); LANG=settings.lang||'ar';}
   document.getElementById('incDate').checked = settings.expDate!==false;
