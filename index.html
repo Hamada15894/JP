@@ -240,6 +240,12 @@ html[dir="ltr"] .toggle input:checked + .tr::before{transform:translateX(21px);}
 .exp-opt .eo-text .t{font-weight:700; font-size:13.5px; color:var(--ink);}
 .exp-opt .eo-text .d{font-size:11.5px; color:var(--muted-2); margin-top:1px;}
 .export-card .btn{border-radius:0; margin:0;}
+.exp-sel{width:auto; min-width:130px; max-width:170px; padding:9px 12px; min-height:40px; font-size:13.5px; font-weight:700; border:1.5px solid var(--line); border-radius:var(--r-sm); background:#fff; color:var(--ink);}
+input.exp-sel{min-width:150px;}
+.store-status{display:flex; align-items:center; gap:9px; padding:11px 13px; border-radius:var(--r-sm); margin-bottom:13px; font-size:12.5px; font-weight:700; line-height:1.45;}
+.store-status svg{width:18px; height:18px; flex:0 0 auto;}
+.store-status.ok{background:var(--ok-soft); color:#0E5C42; border:1px solid #BFE9D6;}
+.store-status.warn{background:var(--sun-soft); color:#8A5A00; border:1px solid #F3D49A;}
 @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
 @media (max-width:360px){ .stats{grid-template-columns:repeat(2,1fr);} }
 </style>
@@ -397,6 +403,7 @@ html[dir="ltr"] .toggle input:checked + .tr::before{transform:translateX(21px);}
 
   <!-- PAGE: STORES -->
   <main class="page" id="page-stores">
+    <div class="store-status hide" id="storeStatus"></div>
     <div class="stats">
       <div class="stat"><div class="n" id="stTotal">0</div><div class="l" data-i18n="st_total">الإجمالي</div></div>
       <div class="stat mt"><div class="n" id="stMT">0</div><div class="l">MT</div></div>
@@ -418,6 +425,21 @@ html[dir="ltr"] .toggle input:checked + .tr::before{transform:translateX(21px);}
       <div class="fgroup"><span class="ttl" data-i18n="f_channel">القناة</span><div class="chips" id="filterChannels"></div></div>
     </div>
     <div class="export-card">
+      <div class="exp-opt">
+        <div class="eo-text">
+          <div class="t" data-i18n="exp_scope">نطاق التصدير</div>
+          <div class="d" data-i18n="exp_scope_d">حمّل كل المتاجر أو متاجر يوم معيّن</div>
+        </div>
+        <select class="ctrl exp-sel" id="expScope" onchange="onScopeChange()">
+          <option value="all" data-i18n="exp_all">كل التواريخ</option>
+          <option value="today" data-i18n="exp_today">اليوم فقط</option>
+          <option value="pick" data-i18n="exp_pick">يوم محدد</option>
+        </select>
+      </div>
+      <div class="exp-opt hide" id="expDayRow">
+        <div class="eo-text"><div class="t" data-i18n="exp_pick">يوم محدد</div></div>
+        <input type="date" class="ctrl exp-sel" id="expDay" />
+      </div>
       <div class="exp-opt">
         <div class="eo-text">
           <div class="t" data-i18n="opt_datetime">إظهار التاريخ والوقت في الملف</div>
@@ -597,7 +619,9 @@ const I18N={
     lbl_notes:'ملاحظات',ph_notes:'أي ملاحظة عن المتجر أو العميل (اختياري)',
     opt_datetime:'إظهار التاريخ والوقت في الملف',opt_datetime_d:'عمود تاريخ التسجيل لكل متجر',
     loc_iframe:'تحديد الموقع لا يعمل داخل المعاينة — افتح الرابط المنشور على جوالك',
-    dup_h:'⚠️ موقع قريب مسجّل سابقًا',dup_body:'سجّلت «{name}» على بُعد {d} متر من هنا. هل هو نفس المتجر؟',dup_open:'فتح المتجر الموجود',dup_keep:'متابعة كمتجر جديد',m:'م'},
+    dup_h:'⚠️ موقع قريب مسجّل سابقًا',dup_body:'سجّلت «{name}» على بُعد {d} متر من هنا. هل هو نفس المتجر؟',dup_open:'فتح المتجر الموجود',dup_keep:'متابعة كمتجر جديد',m:'م',
+    ss_ok:'بياناتك محفوظة على هذا الجهاز',ss_warn:'التخزين غير دائم هنا — افتح الرابط المنشور وأضِفه للشاشة الرئيسية، وخذ نسخة احتياطية من الإعدادات',
+    exp_scope:'نطاق التصدير',exp_scope_d:'حمّل كل المتاجر أو متاجر يوم معيّن',exp_all:'كل التواريخ',exp_today:'اليوم فقط',exp_pick:'يوم محدد'},
   en:{tagline:'Field Store Registry',nav_add:'Add',nav_stores:'Stores',nav_settings:'Settings',
     lbl_rep:'Salesman name',ph_rep:'Your name (saved automatically)',loc_title:'Store location',loc_h:'Pin your location',
     loc_p:'Stand in front of the store and tap to capture coordinates',btn_locate:'Get location',map_note:'Drag the pin to fine-tune the spot',
@@ -628,7 +652,9 @@ const I18N={
     lbl_notes:'Notes',ph_notes:'Any note about the store or customer (optional)',
     opt_datetime:'Include date & time in the file',opt_datetime_d:'A capture-date column per store',
     loc_iframe:'Location doesn’t work in the preview — open the published link on your phone',
-    dup_h:'⚠️ Nearby store already logged',dup_body:'You logged “{name}” {d} m away. Is it the same store?',dup_open:'Open existing store',dup_keep:'Continue as new store',m:'m'}
+    dup_h:'⚠️ Nearby store already logged',dup_body:'You logged “{name}” {d} m away. Is it the same store?',dup_open:'Open existing store',dup_keep:'Continue as new store',m:'m',
+    ss_ok:'Your data is saved on this device',ss_warn:'Storage isn’t persistent here — open the published link, add it to your home screen, and back up from Settings',
+    exp_scope:'Export scope',exp_scope_d:'Export all stores or a specific day’s',exp_all:'All dates',exp_today:'Today only',exp_pick:'Specific day'}
 };
 
 /* ===== 3. State ===== */
@@ -650,6 +676,16 @@ async function dbDelete(id){const db=await idb(); if(!db)return; return new Prom
 async function dbClear(){const db=await idb(); if(!db)return; return new Promise(r=>{try{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear(); tx.oncomplete=()=>r(); tx.onerror=()=>r();}catch(e){r();}});}
 async function metaGet(k){const db=await idb(); if(!db)return null; return new Promise(r=>{try{const tx=db.transaction(META,'readonly').objectStore(META).get(k); tx.onsuccess=()=>r(tx.result?tx.result.v:null); tx.onerror=()=>r(null);}catch(e){r(null);}});}
 async function metaPut(k,v){const db=await idb(); if(!db)return; return new Promise(r=>{try{const tx=db.transaction(META,'readwrite'); tx.objectStore(META).put({k,v}); tx.oncomplete=()=>r(); tx.onerror=()=>r();}catch(e){r();}});}
+/* localStorage mirror (redundancy so data survives even if IndexedDB is flaky) */
+const LS_KEY='storepin_stores_v1', LS_SET='storepin_settings_v1';
+function mirrorToLS(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(stores)); }
+  catch(e){ try{ localStorage.setItem(LS_KEY, JSON.stringify(stores.map(s=>({...s,photos:[]})))); }catch(e2){} }
+  try{ localStorage.setItem(LS_SET, JSON.stringify(settings)); }catch(e){}
+}
+function loadFromLS(){ try{ const v=JSON.parse(localStorage.getItem(LS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function loadSettingsLS(){ try{ return JSON.parse(localStorage.getItem(LS_SET)||'null'); }catch(e){ return null; } }
+async function requestPersist(){ try{ if(navigator.storage&&navigator.storage.persist){ await navigator.storage.persist(); } }catch(e){} }
 
 /* ===== 5. Utilities ===== */
 function uid(){return 'st_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -681,6 +717,7 @@ function applyLang(){const dir=LANG==='ar'?'rtl':'ltr'; document.documentElement
   document.getElementById('saveLbl').textContent=editingId?t('btn_update'):t('btn_save');
   document.querySelector('#editToggle span').textContent=addrEditing?t('btn_done'):t('btn_edit');
   buildCityDatalist(); buildFilterChips(); renderPhotos(); refreshAddrSummary(); renderDup();
+  if(typeof updateStorageStatus==='function')updateStorageStatus();
   if(document.getElementById('page-stores').classList.contains('active'))renderStores();
   if(map)setTimeout(()=>map.invalidateSize(),60);}
 function toggleLang(){LANG=LANG==='ar'?'en':'ar'; settings.lang=LANG; metaPut('settings',settings); applyLang();}
@@ -799,6 +836,7 @@ async function saveStore(){const name=document.getElementById('fCustomer').value
     lat:curLoc.lat,lng:curLoc.lng,acc:curLoc.acc,photos:[...currentPhotos],
     createdAt:editingId?(stores.find(s=>s.id===editingId)?.createdAt||Date.now()):Date.now(),updatedAt:Date.now()};
   await dbPut(rec); const idx=stores.findIndex(s=>s.id===rec.id); if(idx>=0)stores[idx]=rec; else stores.unshift(rec);
+  mirrorToLS();
   const wasEdit=!!editingId; toast(wasEdit?t('t_updated'):t('t_saved'),'ok'); if(!persistOK)setTimeout(()=>toast(t('t_no_persist'),'err'),400);
   clearForm(false); if(wasEdit)go('stores');}
 function clearForm(focusFirst){editingId=null;
@@ -832,6 +870,7 @@ function editStore(id){const s=stores.find(x=>x.id===id); if(!s)return; editingI
 /* ===== 12. Stores list ===== */
 function storeMatchesSearch(s,q){if(!q)return true; q=q.toLowerCase(); return [s.customer,s.city,s.cityEn,s.hood,s.contact,s.address,s.phone,s.notes].some(v=>(v||'').toLowerCase().includes(q));}
 function renderStores(){document.getElementById('stTotal').textContent=stores.length;
+  if(typeof updateStorageStatus==='function')updateStorageStatus();
   document.getElementById('stMT').textContent=stores.filter(s=>s.channel==='MT').length;
   document.getElementById('stTT').textContent=stores.filter(s=>s.channel==='TT').length;
   document.getElementById('stWH').textContent=stores.filter(s=>s.channel==='WH').length;
@@ -868,8 +907,8 @@ function modal(title,body,confirmLabel,danger,action){document.getElementById('m
   c.onclick=()=>{closeModal(); if(_modalAction)_modalAction();}; document.getElementById('mCancel').textContent=t('btn_cancel'); document.getElementById('overlay').classList.add('show');}
 function closeModal(){document.getElementById('overlay').classList.remove('show');}
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
-function askDelete(id){modal(t('m_del_title'),t('m_del_body'),t('btn_delete'),true,async()=>{await dbDelete(id); stores=stores.filter(s=>s.id!==id); toast(t('t_deleted'),'ok'); renderStores();});}
-function confirmClearAll(){modal(t('m_clear_title'),t('m_clear_body'),t('btn_clear'),true,async()=>{await dbClear(); stores=[]; toast(t('t_cleared'),'ok'); renderStores();});}
+function askDelete(id){modal(t('m_del_title'),t('m_del_body'),t('btn_delete'),true,async()=>{await dbDelete(id); stores=stores.filter(s=>s.id!==id); mirrorToLS(); toast(t('t_deleted'),'ok'); renderStores();});}
+function confirmClearAll(){modal(t('m_clear_title'),t('m_clear_body'),t('btn_clear'),true,async()=>{await dbClear(); stores=[]; mirrorToLS(); toast(t('t_cleared'),'ok'); renderStores();});}
 
 /* ===== 14. Excel export (ExcelJS + embedded photos) ===== */
 function dl(blob,filename){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);}
@@ -884,6 +923,11 @@ async function exportExcel(){
   if(!stores.length){toast(t('t_no_stores'),'err'); return;}
   if(typeof ExcelJS==='undefined'){toast(t('t_export_err'),'err'); return;}
   const includeDate=document.getElementById('incDate').checked;
+  const scope=document.getElementById('expScope').value;
+  let pool=[...stores];
+  if(scope==='today'){const k=dayKey(Date.now()); pool=pool.filter(s=>dayKey(s.createdAt||s.updatedAt||Date.now())===k);}
+  else if(scope==='pick'){const k=document.getElementById('expDay').value; if(k)pool=pool.filter(s=>dayKey(s.createdAt||s.updatedAt||Date.now())===k);}
+  if(!pool.length){toast(t('t_no_stores'),'err'); return;}
   toast(t('t_exporting'));
   try{
     const wb=new ExcelJS.Workbook(); wb.creator='StorePin'; wb.created=new Date();
@@ -896,21 +940,26 @@ async function exportExcel(){
       {h:'Latitude',k:'lat',w:13},{h:'Longitude',k:'lng',w:13},{h:'Map Link',k:'map',w:11},
       {h:'Store Photo 1',k:'p0',w:17},{h:'Store Photo 2',k:'p1',w:17},{h:'Store Photo 3',k:'p2',w:17});
     ws.columns=cols.map(c=>({header:c.h,key:c.k,width:c.w}));
+    ws.properties.defaultRowHeight=20;
     const cidx={}; cols.forEach((c,i)=>cidx[c.k]=i+1);
     const thin={style:'thin',color:{argb:'FFD8E0E8'}};
-    const hr=ws.getRow(1); hr.height=28;
+    const chFill={MT:'FFE5EDFF',TT:'FFD9F7F3',WH:'FFFFF0D6'}, chFont={MT:'FF2148B8',TT:'FF066E66',WH:'FF8A5A00'};
+    const hr=ws.getRow(1); hr.height=30;
     hr.eachCell(cell=>{cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0A2540'}}; cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11}; cell.alignment={vertical:'middle',horizontal:'center',wrapText:true}; cell.border={top:thin,bottom:thin,left:thin,right:thin};});
-    const data=[...stores].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    const data=pool.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     data.forEach(s=>{
       const row=ws.addRow({rep:s.rep||'',date:fmtDate(s.createdAt||s.updatedAt||Date.now()),customer:s.customer||'',
         contact:s.contact||'',phone:s.phone||'',sales:(s.sales!==''&&s.sales!=null&&!isNaN(Number(s.sales)))?Number(s.sales):(s.sales||''),
         region:regionEn(s.region),city:s.cityEn||s.city||'',channel:s.channel?(s.channel+' - '+(CHANNELS[s.channel]?CHANNELS[s.channel].en:'')):'',
         address:composeAddr(s),notes:s.notes||'',lat:s.lat!=null?Number(s.lat).toFixed(6):'',lng:s.lng!=null?Number(s.lng).toFixed(6):'',map:''});
-      const rn=row.number;
-      row.eachCell({includeEmpty:true},cell=>{cell.alignment={vertical:'middle',wrapText:false}; cell.border={top:thin,bottom:thin,left:thin,right:thin}; cell.font={size:10.5};});
+      const rn=row.number; const zebra=(rn%2===0);
+      row.eachCell({includeEmpty:true},cell=>{cell.alignment={vertical:'middle',wrapText:false}; cell.border={top:thin,bottom:thin,left:thin,right:thin}; cell.font={size:10.5,color:{argb:'FF1A2B3C'}}; if(zebra)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF1F6FA'}};});
+      ws.getCell(rn,cidx.customer).font={size:10.5,bold:true,color:{argb:'FF0A2540'}};
       ws.getCell(rn,cidx.phone).numFmt='@';
-      ws.getCell(rn,cidx.sales).numFmt='#,##0'; ws.getCell(rn,cidx.sales).alignment={vertical:'middle',horizontal:'right'};
-      ws.getCell(rn,cidx.region).alignment={vertical:'middle',horizontal:'center'};
+      const sc=ws.getCell(rn,cidx.sales); sc.numFmt='#,##0'; sc.alignment={vertical:'middle',horizontal:'right'}; sc.font={size:10.5,bold:true,color:{argb:'FF066E66'}};
+      const rc=ws.getCell(rn,cidx.region); rc.alignment={vertical:'middle',horizontal:'center'}; rc.font={size:10.5,bold:true,color:{argb:'FF0A2540'}};
+      const cc=ws.getCell(rn,cidx.channel); cc.alignment={vertical:'middle',horizontal:'center'};
+      if(s.channel&&chFill[s.channel]){cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:chFill[s.channel]}}; cc.font={size:10.5,bold:true,color:{argb:chFont[s.channel]}};}
       ws.getCell(rn,cidx.address).alignment={vertical:'middle',wrapText:true};
       ws.getCell(rn,cidx.notes).alignment={vertical:'middle',wrapText:true};
       ws.getCell(rn,cidx.lat).numFmt='@'; ws.getCell(rn,cidx.lng).numFmt='@';
@@ -945,6 +994,7 @@ document.getElementById('restoreInput').addEventListener('change',(e)=>{const fi
     // merge by id (incoming wins)
     const map={}; stores.forEach(s=>map[s.id]=s); incoming.forEach(s=>{if(s&&s.id){map[s.id]=s; dbPut(s);} });
     stores=Object.values(map);
+    mirrorToLS();
     if(d.rep&&!settings.rep){updateRep(d.rep,null);}
     toast(t('t_restore_done'),'ok'); renderStores(); go('stores');
   }catch(err){toast(t('t_restore_err'),'err');} };
@@ -968,15 +1018,35 @@ document.getElementById('fRegion').addEventListener('change',e=>{document.getEle
 ['fHood','fAddr'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{document.getElementById('wrap'+(id==='fHood'?'Hood':'Addr')).classList.toggle('filled',!!e.target.value);}));
 
 function saveExpPref(){settings.expDate=document.getElementById('incDate').checked; metaPut('settings',settings);}
+function dayKey(ts){const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+function onScopeChange(){const v=document.getElementById('expScope').value; const row=document.getElementById('expDayRow');
+  row.classList.toggle('hide',v!=='pick');
+  if(v==='pick'&&!document.getElementById('expDay').value){document.getElementById('expDay').value=dayKey(Date.now());}}
+function updateStorageStatus(){const el=document.getElementById('storeStatus'); if(!el)return;
+  const warnIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17v.01M10.3 3.9l-8 14A2 2 0 004 21h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/></svg>';
+  const okIc='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>';
+  if(!persistOK){el.className='store-status warn'; el.innerHTML=warnIc+'<span>'+t('ss_warn')+'</span>'; el.classList.remove('hide');}
+  else if(stores.length){el.className='store-status ok'; el.innerHTML=okIc+'<span>'+t('ss_ok')+'</span>'; el.classList.remove('hide');}
+  else{el.classList.add('hide');}}
 
 async function boot(){
-  const saved=await metaGet('settings');
+  requestPersist();
+  let saved=await metaGet('settings'); if(!saved)saved=loadSettingsLS();
   if(saved){settings=Object.assign(settings,saved); LANG=settings.lang||'ar';}
   document.getElementById('incDate').checked = settings.expDate!==false;
   applyLang();
   if(settings.rep)updateRep(settings.rep,null);
-  const all=await dbAllStores(); stores=all.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  renderPhotos(); renderStores(); refreshAddrSummary();
+  // load: prefer IndexedDB; fall back to / merge with localStorage mirror
+  const idbStores=await dbAllStores();
+  const lsStores=loadFromLS();
+  const map={};
+  lsStores.forEach(s=>{if(s&&s.id)map[s.id]=s;});
+  idbStores.forEach(s=>{if(s&&s.id)map[s.id]=s;}); // IDB wins (has photos)
+  stores=Object.values(map).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  // if IDB was empty but we recovered from LS, re-seed IDB
+  if(!idbStores.length && stores.length){ stores.forEach(s=>dbPut(s)); }
+  mirrorToLS();
+  renderPhotos(); renderStores(); refreshAddrSummary(); updateStorageStatus();
   if(!persistOK){setTimeout(()=>toast(t('t_no_persist'),'err'),800);}
 }
 boot();
