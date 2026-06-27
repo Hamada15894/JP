@@ -119,11 +119,12 @@ html[dir="ltr"] select.ctrl{background-position:right 12px center;}
 .savebar{position:fixed; left:0; right:0; bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px)); z-index:55; max-width:560px; margin:0 auto; padding:10px 14px 12px; background:linear-gradient(to top,var(--paper) 78%,rgba(239,243,246,0)); display:flex; gap:9px; pointer-events:none;}
 .savebar > *{pointer-events:auto;}
 .savebar .btn-primary{flex:1; box-shadow:var(--shadow-lg), 0 6px 16px rgba(8,178,166,.30);}
-.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:14px;}
-.stat{background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 8px; text-align:center; box-shadow:var(--shadow);}
+.stats{display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; scrollbar-width:none;}
+.stats::-webkit-scrollbar{display:none;}
+.stat{flex:1 1 0; min-width:62px; background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 6px; text-align:center; box-shadow:var(--shadow);}
 .stat .n{font-size:21px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1.1;}
 .stat .l{font-size:10.5px; color:var(--muted); font-weight:600; margin-top:2px;}
-.stat.tt .n{color:var(--brand-deep);} .stat.mt .n{color:#2563EB;} .stat.wh .n{color:var(--sun);}
+.stat.tt .n{color:var(--brand-deep);} .stat.mt .n{color:#2563EB;} .stat.wh .n{color:var(--sun);} .stat.res .n{color:#6938C9;}
 .toolbar{display:flex; gap:8px; margin-bottom:12px;}
 .search{flex:1; position:relative;}
 .search svg{position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%); width:17px; height:17px; color:var(--muted-2);}
@@ -152,7 +153,7 @@ html[dir="ltr"] select.ctrl{background-position:right 12px center;}
 .store .info .meta{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
 .store .info .meta .dot{width:3px; height:3px; border-radius:50%; background:var(--muted-2);}
 .tag{display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.2px;}
-.tag.MT{background:#E5EDFF; color:#2148B8;} .tag.TT{background:var(--brand-soft); color:var(--brand-deep);} .tag.WH{background:var(--sun-soft); color:#8A5A00;}
+.tag.MT{background:#E5EDFF; color:#2148B8;} .tag.TT{background:var(--brand-soft); color:var(--brand-deep);} .tag.WH{background:var(--sun-soft); color:#8A5A00;} .tag.RES{background:#EEE9FF; color:#6938C9;}
 .store .info .addr{font-size:11.5px; color:var(--muted-2); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .store .acts{display:flex; border-top:1px solid var(--line-2);}
 .store .acts button{flex:1; background:#fff; border:none; padding:11px; font-size:12.5px; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:6px;}
@@ -357,6 +358,7 @@ input.exp-sel{min-width:150px;}
         <div class="field"><label data-i18n="lbl_channel">قناة التوزيع</label>
           <select class="ctrl" id="fChannel">
             <option value="" data-i18n="opt_choose">— اختر —</option>
+            <option value="RES">RES — Restaurants</option>
             <option value="MT">MT — Modern Trade</option>
             <option value="TT">TT — Traditional Trade</option>
             <option value="WH">WH — Wholesale</option>
@@ -400,6 +402,7 @@ input.exp-sel{min-width:150px;}
     <div class="store-status hide" id="storeStatus"></div>
     <div class="stats">
       <div class="stat"><div class="n" id="stTotal">0</div><div class="l" data-i18n="st_total">الإجمالي</div></div>
+      <div class="stat res"><div class="n" id="stRES">0</div><div class="l">RES</div></div>
       <div class="stat mt"><div class="n" id="stMT">0</div><div class="l">MT</div></div>
       <div class="stat tt"><div class="n" id="stTT">0</div><div class="l">TT</div></div>
       <div class="stat wh"><div class="n" id="stWH">0</div><div class="l">WH</div></div>
@@ -579,7 +582,7 @@ const CITIES=[
   {en:'Sirat Abidah',ar:'سراة عبيدة',r:'S',lat:18.2050,lng:42.8170},
   {en:'Raina',ar:'رينة',r:'S',nogeo:true}
 ];
-const CHANNELS={MT:{ar:'مودرن تريد',en:'Modern Trade'},TT:{ar:'بقالة / تقليدي',en:'Traditional'},WH:{ar:'جملة',en:'Wholesale'}};
+const CHANNELS={RES:{ar:'مطاعم',en:'Restaurants'},MT:{ar:'مودرن تريد',en:'Modern Trade'},TT:{ar:'بقالة / تقليدي',en:'Traditional'},WH:{ar:'جملة',en:'Wholesale'}};
 
 /* ===== 2. i18n ===== */
 const I18N={
@@ -869,6 +872,7 @@ function editStore(id){const s=stores.find(x=>x.id===id); if(!s)return; editingI
 function storeMatchesSearch(s,q){if(!q)return true; q=q.toLowerCase(); return [s.customer,s.city,s.cityEn,s.hood,s.contact,s.address,s.phone,s.notes].some(v=>(v||'').toLowerCase().includes(q));}
 function renderStores(){document.getElementById('stTotal').textContent=stores.length;
   if(typeof updateStorageStatus==='function')updateStorageStatus();
+  document.getElementById('stRES').textContent=stores.filter(s=>s.channel==='RES').length;
   document.getElementById('stMT').textContent=stores.filter(s=>s.channel==='MT').length;
   document.getElementById('stTT').textContent=stores.filter(s=>s.channel==='TT').length;
   document.getElementById('stWH').textContent=stores.filter(s=>s.channel==='WH').length;
@@ -941,7 +945,7 @@ async function exportExcel(){
     ws.properties.defaultRowHeight=20;
     const cidx={}; cols.forEach((c,i)=>cidx[c.k]=i+1);
     const thin={style:'thin',color:{argb:'FFD8E0E8'}};
-    const chFill={MT:'FFE5EDFF',TT:'FFD9F7F3',WH:'FFFFF0D6'}, chFont={MT:'FF2148B8',TT:'FF066E66',WH:'FF8A5A00'};
+    const chFill={RES:'FFEEE9FF',MT:'FFE5EDFF',TT:'FFD9F7F3',WH:'FFFFF0D6'}, chFont={RES:'FF6938C9',MT:'FF2148B8',TT:'FF066E66',WH:'FF8A5A00'};
     const hr=ws.getRow(1); hr.height=30;
     hr.eachCell(cell=>{cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0A2540'}}; cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11}; cell.alignment={vertical:'middle',horizontal:'center',wrapText:true}; cell.border={top:thin,bottom:thin,left:thin,right:thin};});
     const data=pool.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
